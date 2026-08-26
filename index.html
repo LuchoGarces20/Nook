@@ -7,14 +7,42 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 </head>
-
 <body>
     <main class="app-container">
         
         <!-- ==========================================
+             TELA 0: ONBOARDING (PRIMEIRO ACESSO)
+             ========================================== -->
+        <div id="view-onboarding" class="view">
+            <section class="hero-dashboard" style="height: 200px; margin-bottom: 20px;">
+                <div class="hero-overlay"></div>
+                <div class="hero-content" style="bottom: 16px;">
+                    <h1 style="font-size: 1.6rem;">Boas-vindas ao Nook</h1>
+                    <span style="color: rgba(255,255,255,0.9); font-size: 0.88rem;">Sua vida a dois, organizada em um só lugar.</span>
+                </div>
+            </section>
+            
+            <form id="form-onboarding" class="dash-card" style="flex-direction: column; align-items: stretch; gap: 16px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="onboarding-p1">Seu Nome ou Iniciais</label>
+                    <input type="text" id="onboarding-p1" class="form-control" placeholder="Ex: IS" maxlength="20" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="onboarding-p2">Nome ou Iniciais do Parceiro(a)</label>
+                    <input type="text" id="onboarding-p2" class="form-control" placeholder="Ex: VO" maxlength="20" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="onboarding-date">Data de Início do Relacionamento</label>
+                    <input type="date" id="onboarding-date" class="form-control" required>
+                </div>
+                <button type="submit" class="btn-primary" style="margin-top: 8px;">Começar Nossa Jornada</button>
+            </form>
+        </div>
+
+<!-- ==========================================
              TELA 1: INÍCIO (DASHBOARD)
              ========================================== -->
-        <div id="view-home" class="view active">
+        <div id="view-home" class="view">
             <section class="hero-dashboard">
                 <div class="hero-overlay"></div>
                 <div class="hero-content">
@@ -22,39 +50,54 @@
                         <div class="user-avatar partner-avatar">VO</div>
                         <div class="user-avatar my-avatar">IS</div>
                     </div>
-                    <h1 id="dynamic-greeting">Olá, casal! 🤍</h1>
+                    <h1 id="dynamic-greeting">Olá, casal!</h1>
                     <div class="days-counter">
                         <i class="ph-fill ph-calendar-heart"></i>
                         <span>Juntos há <strong id="days-together">--</strong> dias</span>
                     </div>
                 </div>
             </section>
-
+            
             <section class="tasks-section" style="margin-top: 16px;">
-                <h3 class="section-title">PARA HOJE</h3>
+                <h3 class="section-title">RESUMO</h3>
                 
                 <div class="dashboard-cards">
-                    <div class="dash-card">
+                    <!-- ID Adicionado: home-tasks-card -->
+                    <div class="dash-card" id="home-tasks-card" style="cursor: pointer;">
                         <div class="dash-icon" style="background: var(--primary-light);">
                             <i class="ph-fill ph-check-square-offset" style="color: var(--primary);"></i>
                         </div>
                         <div class="dash-info">
                             <span class="dash-title">Tarefas pendentes</span>
-                            <span class="dash-value">4 itens em Atividades</span>
+                            <!-- ID Adicionado: home-tasks-desc -->
+                            <span class="dash-value" id="home-tasks-desc">Calculando...</span>
                         </div>
                         <i class="ph ph-caret-right text-muted"></i>
                     </div>
 
-                    <div class="dash-card">
-                        <div class="dash-icon" style="background: #FDF2F8;">
-                            <i class="ph-fill ph-wallet" style="color: #DB2777;"></i>
+                    <!-- ID Adicionado: home-fin-card -->
+                    <div class="dash-card" id="home-fin-card" style="cursor: pointer;">
+                        <!-- ID Adicionado: home-fin-icon -->
+                        <div class="dash-icon bg-pink-light" id="home-fin-icon">
+                            <i class="ph-fill ph-wallet text-pink"></i>
                         </div>
                         <div class="dash-info">
                             <span class="dash-title">Contas da semana</span>
-                            <span class="dash-value">Nenhum boleto próximo</span>
+                            <!-- ID Adicionado: home-fin-desc -->
+                            <span class="dash-value" id="home-fin-desc">Calculando...</span>
                         </div>
                         <i class="ph ph-caret-right text-muted"></i>
                     </div>
+                </div>
+            </section>
+
+            <!-- NOVA SEÇÃO: Mini-Agenda do Dia -->
+            <section class="tasks-section" style="margin-top: 24px;">
+                <h3 class="section-title">O QUE TEMOS PRA HOJE?</h3>
+                <div class="task-group">
+                    <ul class="task-list" id="home-agenda-list">
+                        <!-- O JS vai injetar os compromissos do dia aqui -->
+                    </ul>
                 </div>
             </section>
         </div>
@@ -72,14 +115,14 @@
                     <div class="user-avatar my-avatar">IS</div>
                 </div>
             </header>
-
+            
             <section class="header">
                 <div class="header-top">
                     <h1 id="active-list-header-title">Atividades</h1>
                     <button class="btn-icon"><i class="ph ph-dots-three-circle"></i></button>
                 </div>
             </section>
-
+            
             <section class="metrics">
                 <div class="metric-card">
                     <span class="metric-label">Listas</span>
@@ -92,7 +135,7 @@
             </section>
 
             <nav class="tabs" id="lists-tabs-container"></nav>
-
+            
             <div class="list-actions">
                 <button class="action-btn" id="btn-list-remind">
                     <i class="ph ph-bell"></i> Lembrar
@@ -118,19 +161,23 @@
         </div>
 
         <!-- ==========================================
-             TELA 3: FINANÇAS (COM CONFIGURAÇÃO DO CASAL)
+             TELA 3: FINANÇAS
              ========================================== -->
         <div id="view-finances" class="view">
             <header class="top-brand-bar">
                 <div class="brand-greeting">
                     <span class="greeting-text" style="font-size: 1.4rem; letter-spacing: -0.5px;">Finanças</span>
                 </div>
-                <button class="btn-icon" id="btn-open-fin-setup" title="Configurar regras do casal">
-                    <i class="ph ph-sliders-horizontal"></i>
-                </button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-icon" id="btn-open-expense-modal" title="Adicionar Nova Conta">
+                        <i class="ph ph-plus-circle"></i>
+                    </button>
+                    <button class="btn-icon" id="btn-open-fin-setup" title="Configurar regras do casal">
+                        <i class="ph ph-sliders-horizontal"></i>
+                    </button>
+                </div>
             </header>
 
-            <!-- Card/Banner de Ativação / Regra Ativa -->
             <div id="fin-setup-banner" class="dash-card" style="background: var(--primary-light); border-color: rgba(224, 122, 95, 0.3); margin-bottom: 20px; cursor: pointer;">
                 <div class="dash-icon" style="background: var(--primary); color: white;">
                     <i class="ph-fill ph-sparkle"></i>
@@ -142,11 +189,10 @@
                 <i class="ph ph-caret-right text-muted"></i>
             </div>
 
-            <!-- Métricas Dinâmicas Baseadas no Perfil -->
             <section class="metrics" id="fin-metrics-container">
                 <div class="metric-card">
-                    <span class="metric-label" id="label-fin-m1">Saldo Estimado</span>
-                    <span class="metric-value" id="val-fin-m1">R$ 4.250</span>
+                    <span class="metric-label" id="label-fin-m1">Total em Contas</span>
+                    <span class="metric-value" id="val-fin-m1">R$ 0,00</span>
                 </div>
                 <div class="metric-card">
                     <span class="metric-label" id="label-fin-m2">Divisão Ativa</span>
@@ -154,11 +200,10 @@
                 </div>
             </section>
 
-            <!-- Resumo da Proporção (Se Proporcional) -->
             <div id="fin-proportional-bar-container" style="display: none; margin-bottom: 20px; background: var(--card-bg); padding: 14px; border-radius: var(--radius-lg); border: 1px solid var(--border-color);">
                 <div style="display: flex; justify-content: space-between; font-size: 0.82rem; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">
-                    <span>IS: <strong id="prop-val-is">53%</strong></span>
-                    <span>VO: <strong id="prop-val-vo">47%</strong></span>
+                    <span><span id="prop-label-is">IS: </span><strong id="prop-val-is">53%</strong></span>
+                    <span><span id="prop-label-vo">VO: </span><strong id="prop-val-vo">47%</strong></span>
                 </div>
                 <div class="progress-bar">
                     <div id="prop-fill-is" class="progress-fill" style="width: 53%;"></div>
@@ -168,28 +213,8 @@
             <section class="tasks-section">
                 <h3 class="section-title">PRÓXIMOS VENCIMENTOS DA CASA</h3>
                 <div class="task-group">
-                    <ul class="task-list">
-                        <li class="task-item">
-                            <div class="dash-icon" style="background: rgba(219, 39, 119, 0.1); width: 32px; height: 32px; font-size: 1rem;">
-                                <i class="ph-fill ph-house-line" style="color: #DB2777;"></i>
-                            </div>
-                            <div class="task-text">
-                                <strong style="font-size: 0.95rem; color: var(--text-main);">Aluguel & Condomínio</strong>
-                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Vence dia 05 • Responsável: Casal</div>
-                            </div>
-                            <span style="font-weight: 700; font-size: 0.95rem; color: var(--text-main);">R$ 1.500</span>
-                        </li>
-                        <li class="task-item">
-                            <div class="dash-icon" style="background: rgba(224, 122, 95, 0.1); width: 32px; height: 32px; font-size: 1rem;">
-                                <i class="ph-fill ph-wifi-high" style="color: var(--primary);"></i>
-                            </div>
-                            <div class="task-text">
-                                <strong style="font-size: 0.95rem; color: var(--text-main);">Internet Fibra</strong>
-                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Vence dia 10 • Responsável: IS</div>
-                            </div>
-                            <span style="font-weight: 700; font-size: 0.95rem; color: var(--text-main);">R$ 120</span>
-                        </li>
-                    </ul>
+                    <!-- O UL agora está vazio por padrão, o JavaScript cuidará de renderizar -->
+                    <ul class="task-list" id="expenses-list-container"></ul>
                 </div>
             </section>
         </div>
@@ -202,7 +227,7 @@
                 <div class="brand-greeting" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <span class="greeting-text" style="font-size: 1.4rem; letter-spacing: -0.5px;">Agenda</span>
                     <button type="button" id="btn-go-today" class="btn-today">Hoje</button>
-
+                    
                     <label for="agenda-jump-date" style="cursor: pointer; display: flex; align-items: center; background: var(--primary-light); padding: 6px 10px; border-radius: var(--radius-pill);" title="Ir para data">
                         <i class="ph ph-calendar-blank" style="color: var(--primary); font-size: 1.1rem; margin-right: 4px;"></i>
                         <span style="font-size: 0.75rem; font-weight: 700; color: var(--primary);">Buscar data</span>
@@ -211,18 +236,18 @@
                 </div>
                 <button class="btn-icon" id="btn-open-event-modal"><i class="ph ph-plus-circle"></i></button>
             </header>
-
+            
             <section class="date-scroller-container">
                 <div class="date-scroller" id="agenda-date-scroller"></div>
             </section>
-
+            
             <section class="tasks-section" style="margin-top: 16px;">
                 <h3 class="section-title" id="agenda-selected-title">HOJE</h3>
                 <div class="task-group">
                     <ul class="task-list" id="agenda-selected-list"></ul>
                 </div>
             </section>
-
+            
             <section class="tasks-section" style="margin-top: 24px;">
                 <h3 class="section-title">PRÓXIMOS COMPROMISSOS</h3>
                 <div class="task-group">
@@ -241,7 +266,7 @@
                 </div>
                 <button class="btn-icon" id="btn-open-goal-modal"><i class="ph ph-plus-circle"></i></button>
             </header>
-
+            
             <section class="metrics">
                 <div class="metric-card">
                     <span class="metric-label">Guardado (Metas)</span>
@@ -252,7 +277,7 @@
                     <span class="metric-value" id="metric-goals-count">4</span>
                 </div>
             </section>
-
+            
             <section class="dashboard-cards" id="goals-list-container"></section>
         </div>
 
@@ -265,13 +290,13 @@
                     <span class="greeting-text" style="font-size: 1.4rem; letter-spacing: -0.5px;">Ajustes</span>
                 </div>
             </header>
-
+            
             <section class="tasks-section">
                 <div class="task-group">
                     <ul class="task-list">
-                        <li class="task-item setting-item" style="cursor: pointer;">
+                        <li class="task-item setting-item" id="btn-reopen-onboarding" style="cursor: pointer;">
                             <i class="ph ph-heart text-muted" style="font-size: 1.2rem;"></i>
-                            <span class="task-text">Perfil do Casal</span>
+                            <span class="task-text">Perfil do Casal (Onboarding)</span>
                             <i class="ph ph-caret-right text-muted"></i>
                         </li>
                         <li class="task-item setting-item" style="cursor: pointer;">
@@ -290,7 +315,7 @@
         </div>
 
         <div class="spacer" style="height: 120px;"></div>
-
+        
         <!-- Bottom Bar Fixa -->
         <nav class="bottom-bar">
             <a href="#" class="nav-item active" data-target="view-home">
@@ -312,6 +337,10 @@
                 <i class="ph ph-gear"></i><span>Ajustes</span>
             </a>
         </nav>
+
+        <!-- ==========================================
+             MODAIS (BOTTOM SHEETS)
+             ========================================== -->
 
         <!-- MODAL: NOVO COMPROMISSO -->
         <div class="modal-overlay" id="event-modal-overlay"></div>
@@ -367,19 +396,18 @@
                     <label>Tipo de Meta</label>
                     <select id="goal-type" class="form-control">
                         <option value="financial">💰 Financeira (Acumular R$)</option>
-                        <option value="habit">🍷 Hábito / Conquista (Frequência/Vezes)</option>
+                        <option value="habit">🏆 Hábito / Conquista (Frequência/Vezes)</option>
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label>Nome da Meta</label>
                     <input type="text" id="goal-title" class="form-control" placeholder="Ex: Viagem de Fim de Ano" required>
                 </div>
-
                 <div class="form-row">
                     <div class="form-group" style="flex: 1;">
                         <label>Emoji / Ícone</label>
-                        <input type="text" id="goal-icon" class="form-control" placeholder="✈️" value="🎯" required>
+                        <!-- O value foi removido para evitar a necessidade de apagar manualmente -->
+                        <input type="text" id="goal-icon" class="form-control" placeholder="✈️" required>
                     </div>
                     <div class="form-group" style="flex: 2;">
                         <label>De quem é?</label>
@@ -390,7 +418,7 @@
                         </select>
                     </div>
                 </div>
-
+                
                 <div id="group-goal-financial" class="form-row">
                     <div class="form-group" style="flex: 1;">
                         <label>Valor Objetivo (R$)</label>
@@ -398,7 +426,7 @@
                     </div>
                     <div class="form-group" style="flex: 1;">
                         <label>Aporte Inicial (R$)</label>
-                        <input type="number" id="goal-initial-fin" class="form-control" placeholder="0" min="0" step="0.01" value="0">
+                        <input type="number" id="goal-initial-fin" class="form-control" placeholder="0" min="0" step="0.01">
                     </div>
                 </div>
 
@@ -412,7 +440,7 @@
                         <input type="text" id="goal-unit-habit" class="form-control" placeholder="encontros">
                     </div>
                 </div>
-
+                
                 <button type="submit" class="btn-primary">Criar Meta</button>
             </form>
         </div>
@@ -436,7 +464,7 @@
             </form>
         </div>
 
-        <!-- MODAL: CONFIGURAÇÃO DE FINANÇAS DO CASAL (NOVO ONBOARDING) -->
+        <!-- MODAL: CONFIGURAÇÃO DE FINANÇAS DO CASAL -->
         <div class="modal-overlay" id="fin-setup-modal-overlay"></div>
         <div class="bottom-sheet" id="fin-setup-bottom-sheet">
             <div class="sheet-handle"></div>
@@ -456,17 +484,18 @@
                     </select>
                 </div>
 
-                <!-- Seção Proporcional (Aparece se selecionado Proporcional) -->
                 <div id="fin-income-inputs" style="display: none; background: var(--card-bg); padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 16px;">
                     <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 8px;">RENDA MENSAL ESTIMADA</span>
                     <div class="form-row">
                         <div class="form-group" style="flex: 1; margin-bottom: 0;">
                             <label style="font-size: 0.75rem;">IS (R$)</label>
-                            <input type="number" id="fin-income-is" class="form-control" placeholder="4500" value="4500">
+                            <!-- Os atributos value foram removidos -->
+                            <input type="number" id="fin-income-is" class="form-control" placeholder="4500">
                         </div>
                         <div class="form-group" style="flex: 1; margin-bottom: 0;">
                             <label style="font-size: 0.75rem;">VO (R$)</label>
-                            <input type="number" id="fin-income-vo" class="form-control" placeholder="4000" value="4000">
+                            <!-- Os atributos value foram removidos -->
+                            <input type="number" id="fin-income-vo" class="form-control" placeholder="4000">
                         </div>
                     </div>
                 </div>
@@ -483,8 +512,44 @@
                 <button type="submit" class="btn-primary">Salvar Preferências</button>
             </form>
         </div>
-
+        
+        <!-- MODAL: NOVA CONTA (FINANÇAS) -->
+        <div class="modal-overlay" id="expense-modal-overlay"></div>
+        <div class="bottom-sheet" id="expense-bottom-sheet">
+            <div class="sheet-handle"></div>
+            <div class="sheet-header">
+                <h2>Nova Conta</h2>
+                <button class="btn-icon" id="btn-close-expense-modal" style="font-size: 1.2rem;"><i class="ph ph-x"></i></button>
+            </div>
+            
+            <form id="form-add-expense" class="sheet-body">
+                <div class="form-group">
+                    <label>Descrição da Conta</label>
+                    <input type="text" id="expense-title" class="form-control" placeholder="Ex: Conta de Luz, Aluguel" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" style="flex: 1;">
+                        <label>Valor (R$)</label>
+                        <input type="number" id="expense-amount" class="form-control" placeholder="150.00" min="1" step="0.01" required>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Vencimento</label>
+                        <input type="date" id="expense-date" class="form-control" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Quem é responsável?</label>
+                    <select id="expense-owner" class="form-control">
+                        <option value="Casal">Nós dois (Casal)</option>
+                        <option value="IS">IS (Meu)</option>
+                        <option value="VO">VO (Parceiro)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary">Adicionar Conta</button>
+            </form>
+        </div>
+        
     </main>
-    <script src="app.js"></script>
+    <script type="module" src="js/app.js"></script>
 </body>
 </html>
