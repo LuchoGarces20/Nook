@@ -57,6 +57,26 @@
                     </div>
                 </div>
             </section>
+
+            <!-- NOVA SEÇÃO: MOOD TRACKER -->
+            <section class="tasks-section" style="margin-top: 16px;">
+                <h3 class="section-title">COMO ESTAMOS HOJE?</h3>
+                <div style="display: flex; gap: 12px;">
+                    <!-- Card P1 (Meu) -->
+                    <div class="dash-card" id="btn-mood-p1" style="flex: 1; cursor: pointer; flex-direction: column; align-items: center; padding: 16px 8px; justify-content: center; text-align: center;">
+                        <div class="user-avatar my-avatar" id="mood-avatar-p1" style="margin: 0; width: 38px; height: 38px;">IS</div>
+                        <span id="mood-icon-p1" style="font-size: 2.2rem; margin: 8px 0; display: block;">☁️</span>
+                        <span id="mood-text-p1" class="dash-value" style="font-size: 0.75rem;">Como você está?</span>
+                    </div>
+                    
+                    <!-- Card P2 (Parceiro) -->
+                    <div class="dash-card" id="btn-mood-p2" style="flex: 1; cursor: pointer; flex-direction: column; align-items: center; padding: 16px 8px; justify-content: center; text-align: center;">
+                        <div class="user-avatar partner-avatar" id="mood-avatar-p2" style="margin: 0; width: 38px; height: 38px;">VO</div>
+                        <span id="mood-icon-p2" style="font-size: 2.2rem; margin: 8px 0; display: block;">☁️</span>
+                        <span id="mood-text-p2" class="dash-value" style="font-size: 0.75rem;">Como o(a) parceiro(a) está?</span>
+                    </div>
+                </div>
+            </section>
             
             <section class="tasks-section" style="margin-top: 16px;">
                 <h3 class="section-title">RESUMO</h3>
@@ -119,8 +139,7 @@
             <section class="header">
                 <div class="header-top">
                     <h1 id="active-list-header-title">Atividades</h1>
-                    <button class="btn-icon"><i class="ph ph-dots-three-circle"></i></button>
-                </div>
+<button class="btn-icon" id="btn-list-options"><i class="ph ph-dots-three-circle"></i></button>                </div>
             </section>
             
             <section class="metrics">
@@ -547,6 +566,39 @@
                 </div>
                 <button type="submit" class="btn-primary">Adicionar Conta</button>
             </form>
+        </div>
+
+        <!-- MODAL: OPÇÕES DA LISTA -->
+        <div class="modal-overlay" id="list-options-modal-overlay"></div>
+        <div class="bottom-sheet" id="list-options-bottom-sheet">
+            <div class="sheet-handle"></div>
+            <div class="sheet-header">
+                <h2 id="list-options-title">Opções da Lista</h2>
+                <button class="btn-icon" id="btn-close-list-options" style="font-size: 1.2rem;"><i class="ph ph-x"></i></button>
+            </div>
+            
+            <div class="sheet-body" style="display: flex; flex-direction: column; gap: 12px;">
+                <button id="btn-rename-list" class="btn-primary" style="background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0;">
+                    <i class="ph ph-pencil-simple"></i> Renomear Lista
+                </button>
+                <button id="btn-delete-list" class="btn-primary" style="background: rgba(230, 57, 70, 0.1); color: #E63946; margin-top: 0;">
+                    <i class="ph ph-trash"></i> Excluir Lista Inteira
+                </button>
+            </div>
+        </div>
+
+        <!-- MODAL: ESCOLHER HUMOR -->
+        <div class="modal-overlay" id="mood-modal-overlay"></div>
+        <div class="bottom-sheet" id="mood-bottom-sheet">
+            <div class="sheet-handle"></div>
+            <div class="sheet-header">
+                <h2 id="mood-modal-title">Como você está hoje?</h2>
+                <button class="btn-icon" id="btn-close-mood-modal" style="font-size: 1.2rem;"><i class="ph ph-x"></i></button>
+            </div>
+            
+            <div class="sheet-body" id="mood-options-container" style="display: flex; flex-direction: column; gap: 8px;">
+                <!-- As opções serão injetadas pelo JavaScript -->
+            </div>
         </div>
         
     </main>

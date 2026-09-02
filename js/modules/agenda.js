@@ -87,11 +87,18 @@ const renderAgendaView = () => {
 };
 
 export const initAgenda = () => {
-    document.getElementById('btn-go-today')?.addEventListener('click', () => {
-        selectedDateStr = getLocalDateString(new Date());
-        renderDateScroller(); renderAgendaView();
-        triggerHaptic(15);
-    });
+    const jumpDateInput = document.getElementById('agenda-jump-date');
+    if (jumpDateInput) {
+        jumpDateInput.addEventListener('change', (e) => {
+            const selectedDate = e.target.value; 
+            if (selectedDate) {
+                selectedDateStr = selectedDate;
+                renderDateScroller(); 
+                renderAgendaView();   
+                triggerHaptic(15);
+            }
+        });
+    }
 
     const form = document.getElementById('form-add-event');
     const overlay = document.getElementById('event-modal-overlay');

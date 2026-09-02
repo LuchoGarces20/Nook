@@ -666,3 +666,36 @@ body {
         background-color: rgba(230, 57, 70, 0.2);
     }
 }
+
+/* --- MOOD TRACKER --- */
+.mood-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.mood-option:active {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    transform: scale(0.98);
+}
+.mood-option .emoji { font-size: 1.6rem; }
+.mood-option .text { font-size: 0.95rem; font-weight: 600; color: var(--text-main); }
+
+@media (prefers-color-scheme: dark) {
+    .mood-option:active { background: rgba(224, 122, 95, 0.2); }
+}
+
+#mood-bottom-sheet .sheet-body {
+    max-height: 60vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 20px;
+}

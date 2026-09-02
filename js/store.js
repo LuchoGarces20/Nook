@@ -28,13 +28,15 @@ export const store = {
     ]),
     agenda: load('agenda', []),
     goals: load('goals', []),
-    
+    moods: load('moods', { p1: null, p2: null, date: '' }),
+
     setProfile(data) { this.profile = data; save('profile', data); },
     setFinances(data) { this.finances = data; save('finances', data); },
     setExpenses(data) { this.expenses = data; save('expenses', data); },
     setLists(data) { this.lists = data; save('lists', data); },
     setAgenda(data) { this.agenda = data; save('agenda', data); },
     setGoals(data) { this.goals = data; save('goals', data); },
+    setMoods(data) { this.moods = data; save('moods', data); },
     
     clearProfile() { 
         this.profile = null; 

@@ -50,7 +50,7 @@ export const renderLists = () => {
             if (item.owner === 'VO') displayOwner = p2Init;
             if (item.owner === 'IS') displayOwner = p1Init;
             let badgeClass = (item.owner === 'VO' || item.owner === p2Init) ? 'bg-muted' : '';
-            if (item.owner === 'Casal') { badgeClass = 'bg-casal'; displayOwner = 'N S'; }
+            if (item.owner === 'Casal') { badgeClass = 'bg-casal'; displayOwner = 'NÓS'; }
 
             const safeText = escapeHTML(item.text);
 
@@ -86,6 +86,63 @@ export const renderLists = () => {
 };
 
 export const initLists = () => {
+    const btnOptions = document.getElementById('btn-list-options');
+    const overlayList = document.getElementById('list-options-modal-overlay');
+    const sheetList = document.getElementById('list-options-bottom-sheet');
+    const btnCloseOptions = document.getElementById('btn-close-list-options');
+    const btnRename = document.getElementById('btn-rename-list');
+    const btnDelete = document.getElementById('btn-delete-list');
+
+    const closeOptions = () => {
+        overlayList?.classList.remove('active');
+        sheetList?.classList.remove('active');
+    };
+
+    btnOptions?.addEventListener('click', () => {
+        const currentList = store.lists.find(l => l.id === activeListId);
+        if (!currentList) return;
+        
+        document.getElementById('list-options-title').textContent = currentList.name;
+        triggerHaptic(10);
+        overlayList.classList.add('active');
+        sheetList.classList.add('active');
+    });
+
+    btnCloseOptions?.addEventListener('click', closeOptions);
+    overlayList?.addEventListener('click', closeOptions);
+
+    btnRename?.addEventListener('click', () => {
+        const currentList = store.lists.find(l => l.id === activeListId);
+        if (currentList) {
+            const newName = prompt('Novo nome para a lista:', currentList.name);
+            if (newName && newName.trim()) {
+                currentList.name = newName.trim();
+                store.setLists([...store.lists]);
+                renderLists();
+                triggerHaptic(20);
+            }
+        }
+        closeOptions();
+    });
+
+    btnDelete?.addEventListener('click', () => {
+        const currentList = store.lists.find(l => l.id === activeListId);
+        if (currentList) {
+            if (confirm(`Tem certeza que deseja excluir a lista "${currentList.name}"?`)) {
+                let newLists = store.lists.filter(l => l.id !== activeListId);
+                
+                if (newLists.length === 0) {
+                    newLists.push({ id: 'list_' + Date.now(), name: 'Nova Lista', items: [] });
+                }
+                
+                store.setLists(newLists);
+                activeListId = newLists[0].id; 
+                renderLists();
+                triggerHaptic(30);
+            }
+        }
+        closeOptions();
+    });
     const formAddTask = document.getElementById('form-add-task');
     const inputTaskText = document.getElementById('input-task-text');
     const btnListArchive = document.getElementById('btn-list-archive');
