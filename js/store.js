@@ -31,6 +31,7 @@ export const store = {
     moods: load('moods', { p1: null, p2: null, date: '' }),
 
     setProfile(data) { this.profile = data; save('profile', data); },
+    setTheme(data) { this.theme = data; save('theme', data); },
     setFinances(data) { this.finances = data; save('finances', data); },
     setExpenses(data) { this.expenses = data; save('expenses', data); },
     setLists(data) { this.lists = data; save('lists', data); },

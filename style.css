@@ -31,10 +31,15 @@
 
 body {
     background-color: #EBE7E5;
+    color: var(--text-main);
     display: flex;
     justify-content: center;
     align-items: flex-start;
     min-height: 100vh;
+}
+
+.text-muted {
+    color: var(--text-muted) !important;
 }
 
 .app-container {
@@ -197,6 +202,7 @@ body {
     background-color: #E8F0EC; 
     color: #4A6B5D;
     z-index: 1;
+    border: 2px solid var(--bg-color); 
 }
 
 .my-avatar {
@@ -640,32 +646,96 @@ body {
 .bottom-bar.hidden { display: none !important; }
 #view-onboarding { padding-bottom: 40px; }
 
-/* DARK MODE OVERRIDES */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --bg-color: #121212;
-        --card-bg: #1C1C1E;
-        --text-main: #FFFFFF;
-        --text-muted: #8E8E93;
-        --border-color: #2C2C2E;
-        --primary-light: rgba(224, 122, 95, 0.15);
-        
-        /* Tema rosa no Dark Mode (tons reajustados para contraste) */
-        --pink-main: #F472B6; 
-        --pink-light: rgba(219, 39, 119, 0.15);
-    }
-    
-    body { background-color: #000000; }
-    .bottom-bar, .bottom-sheet { background: rgba(28, 28, 30, 0.95); }
-    .my-avatar { border-color: var(--bg-color); }
-    .partner-avatar { background-color: rgba(74, 107, 93, 0.2); color: #729686; }
-    .tab-pill.outline { background-color: var(--bg-color); }
-    .task-badge.bg-muted { background-color: var(--bg-color); }
-    .form-control { background: #000000; color: white; border-color: #3A3A3C; }
-    .btn-delete-event:hover, .btn-delete-event:active {
-        background-color: rgba(230, 57, 70, 0.2);
-    }
+
+/* ==========================================================================
+   EMOJI PICKER (AVATAR)
+   ========================================================================== */
+.emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
+    gap: 12px;
+    max-height: 50vh;
+    overflow-y: auto;
+    padding-bottom: 20px;
 }
+.emoji-grid::-webkit-scrollbar { display: none; }
+.emoji-grid { -ms-overflow-style: none; scrollbar-width: none; }
+
+.emoji-btn {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 1.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 48px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.emoji-btn:active {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    transform: scale(0.85);
+}
+
+/* Ajuste sutil no Dark Mode para os botões de emoji */
+html[data-theme="dark"] .emoji-btn:active { background: rgba(229, 140, 115, 0.2); }
+
+/* ==========================================================================
+   DARK MODE - WARM & PREMIUM (Controlado via JS)
+   ========================================================================== */
+html[data-theme="dark"] {
+    /* Fundos: Tons quentes e profundos, sem usar preto puro */
+    --bg-color: #181514;       /* Fundo principal (quase preto, mas quente) */
+    --card-bg: #24201F;        /* Cartões levemente mais claros (elevação) */
+    
+    /* Textos: Off-white quente para leitura confortável */
+    --text-main: #EAE3E0;      
+    --text-muted: #9E918C;     
+    
+    /* Bordas: Visíveis para separar elementos, mas sutis */
+    --border-color: #38312F;   
+    
+    /* Cor Primária: Levemente ajustada para "vibrar" melhor no escuro */
+    --primary: #E58C73;        
+    --primary-light: rgba(229, 140, 115, 0.15);
+    
+    /* Substituição do Pink Neon: Entra o "Vintage Plum" (Vinho Suave) */
+    --pink-main: #B8868B;      /* Elegante e combina com o Rose Gold */
+    --pink-light: rgba(184, 134, 139, 0.15);
+}
+    
+/* Aplicação no Body e Componentes Fixos */
+html[data-theme="dark"] body { 
+    background-color: var(--bg-color); 
+}
+
+html[data-theme="dark"] .bottom-bar, 
+html[data-theme="dark"] .bottom-sheet { 
+    background: rgba(36, 32, 31, 0.95); /* Acompanha o tom do card com desfoque */
+}
+
+/* Ajustes finos de contraste para elementos interativos */
+html[data-theme="dark"] .my-avatar { 
+    border: 2px solid rgba(255, 255, 255, 0.12);
+}
+html[data-theme="dark"] .partner-avatar { 
+    background-color: rgba(167, 187, 178, 0.15); 
+    color: #C2D1CA; 
+    border-color: rgba(255, 255, 255, 0.12); 
+}
+html[data-theme="dark"] .tab-pill.outline { background-color: var(--bg-color); }
+html[data-theme="dark"] .task-badge.bg-muted { background-color: var(--bg-color); }
+html[data-theme="dark"] .form-control { background: var(--bg-color); color: var(--text-main); border-color: var(--border-color); }
+
+/* Feedback de toque mais suave no modo escuro */
+html[data-theme="dark"] .btn-delete-event:hover, 
+html[data-theme="dark"] .btn-delete-event:active {
+    background-color: rgba(230, 57, 70, 0.15);
+}
+html[data-theme="dark"] .mood-option:active { background: var(--primary-light); }
+
 
 /* --- MOOD TRACKER --- */
 .mood-option {
@@ -698,4 +768,69 @@ body {
     flex-direction: column;
     gap: 8px;
     padding-bottom: 20px;
+}
+
+/* ==========================================================================
+   DRAG & DROP E TAGS (LISTAS)
+   ========================================================================== */
+.task-content {
+    cursor: grab;
+}
+.task-content:active {
+    cursor: grabbing;
+}
+
+/* Efeito visual no item que está sendo arrastado */
+.task-item.dragging {
+    opacity: 0.4;
+    background-color: var(--primary-light);
+    border: 1px dashed var(--primary);
+    border-radius: var(--radius-sm);
+}
+
+/* Efeito visual no item sobre o qual estamos passando por cima (Drop zone) */
+.task-item.drag-over {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    border-radius: var(--radius-sm);
+    z-index: 10;
+    position: relative;
+    background-color: rgba(0,0,0,0.02);
+}
+
+html[data-theme="dark"] .task-item.drag-over {
+    background-color: rgba(255,255,255,0.05);
+}
+
+.btn-priority {
+    background: transparent;
+    border: none;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+}
+.btn-priority:active {
+    transform: scale(0.8);
+}
+
+/* ==========================================================================
+   FINANÇAS: CONTAS PAGAS E GRÁFICOS
+   ========================================================================== */
+.expense-item.completed {
+    opacity: 0.6;
+}
+.expense-item.completed .task-text strong {
+    text-decoration: line-through;
+    color: var(--text-muted) !important;
+}
+.expense-item.completed .checkbox {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+.expense-item.completed .checkbox i {
+    display: block;
 }

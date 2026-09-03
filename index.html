@@ -6,6 +6,25 @@
     <title>Nook - Gestão a Dois</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+    (function() {
+        try {
+            var localTheme = localStorage.getItem('nook_theme');
+            var theme = localTheme ? JSON.parse(localTheme) : 'system';
+            var isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        } catch (e) {}
+    })();
+    </script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/default.css">
+    <script src="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/index.min.js"></script>
+    <script>
+    window.addEventListener('DOMContentLoaded', () => {
+        MobileDragDrop.polyfill({ holdToDrag: 250 }); // Segure 250ms para começar a arrastar
+        window.addEventListener('touchmove', function() {}, {passive: false});
+    });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
     <main class="app-container">
@@ -24,13 +43,34 @@
             
             <form id="form-onboarding" class="dash-card" style="flex-direction: column; align-items: stretch; gap: 16px;">
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label for="onboarding-p1">Seu Nome ou Iniciais</label>
-                    <input type="text" id="onboarding-p1" class="form-control" placeholder="Ex: IS" maxlength="20" required>
+        <label>Seu Perfil (Você)</label>
+        <div style="display: flex; gap: 12px; align-items: center; margin-top: 6px;">
+            <div id="preview-p1" class="user-avatar my-avatar" style="width: 52px; height: 52px; font-size: 1.2rem; flex-shrink: 0; border-width: 3px;"></div>
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                <input type="text" id="onboarding-p1" class="form-control" placeholder="Nome ou Iniciais" required>
+                <div style="display: flex; gap: 6px;">
+                    <button type="button" class="btn-avatar-opt" id="btn-foto-p1"><i class="ph ph-camera"></i> Foto</button>
+                    <button type="button" class="btn-avatar-opt" id="btn-emoji-p1"><i class="ph ph-smiley"></i> Emoji</button>
                 </div>
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label for="onboarding-p2">Nome ou Iniciais do Parceiro(a)</label>
-                    <input type="text" id="onboarding-p2" class="form-control" placeholder="Ex: VO" maxlength="20" required>
+                <input type="file" id="file-p1" accept="image/*" style="display: none;">
+            </div>
+        </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom: 0;">
+        <label>Perfil do Parceiro(a)</label>
+        <div style="display: flex; gap: 12px; align-items: center; margin-top: 6px;">
+            <div id="preview-p2" class="user-avatar partner-avatar" style="width: 52px; height: 52px; font-size: 1.2rem; flex-shrink: 0; border-width: 3px;"></div>
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                <input type="text" id="onboarding-p2" class="form-control" placeholder="Nome ou Iniciais" required>
+                <div style="display: flex; gap: 6px;">
+                    <button type="button" class="btn-avatar-opt" id="btn-foto-p2"><i class="ph ph-camera"></i> Foto</button>
+                    <button type="button" class="btn-avatar-opt" id="btn-emoji-p2"><i class="ph ph-smiley"></i> Emoji</button>
                 </div>
+                <input type="file" id="file-p2" accept="image/*" style="display: none;">
+            </div>
+        </div>
+    </div>
                 <div class="form-group" style="margin-bottom: 0;">
                     <label for="onboarding-date">Data de Início do Relacionamento</label>
                     <input type="date" id="onboarding-date" class="form-control" required>
@@ -207,7 +247,27 @@
                 </div>
                 <i class="ph ph-caret-right text-muted"></i>
             </div>
+<!-- NOVO: ACERTO DE CONTAS (INTELIGÊNCIA) -->
+<div id="fin-settlement-card" class="dash-card" style="display: none; background: var(--primary-light); margin-bottom: 12px; border: 1px solid rgba(224, 122, 95, 0.3);">
+    <div class="dash-icon" style="background: var(--primary); color: white;">
+        <i class="ph-fill ph-scales"></i>
+    </div>
+    <div class="dash-info">
+        <span class="dash-title" style="font-size: 0.75rem; color: var(--primary); text-transform: uppercase; font-weight: 800;">Acerto do Mês</span>
+        <span class="dash-value" id="fin-settlement-text" style="font-size: 0.9rem; font-weight: 600; color: var(--text-main); line-height: 1.3;">Calculando...</span>
+    </div>
+</div>
 
+<!-- NOVO: GRÁFICO DE CATEGORIAS -->
+<div id="fin-chart-card" class="dash-card" style="display: none; flex-direction: column; margin-bottom: 20px; gap: 12px; padding: 16px;">
+    <span style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Para onde vai o dinheiro</span>
+    <div id="fin-chart-bar" style="display: flex; width: 100%; height: 12px; border-radius: var(--radius-pill); overflow: hidden; background: var(--border-color);">
+        <!-- O JS injetará as barras aqui -->
+    </div>
+    <div id="fin-chart-legend" style="display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.75rem;">
+        <!-- O JS injetará as legendas aqui -->
+    </div>
+</div>
             <section class="metrics" id="fin-metrics-container">
                 <div class="metric-card">
                     <span class="metric-label" id="label-fin-m1">Total em Contas</span>
@@ -234,6 +294,12 @@
                 <div class="task-group">
                     <!-- O UL agora está vazio por padrão, o JavaScript cuidará de renderizar -->
                     <ul class="task-list" id="expenses-list-container"></ul>
+                </div>
+            </section>
+            <section class="tasks-section" style="margin-top: 24px;">
+                <h3 class="section-title">HISTÓRICO DO MÊS (PAGAS)</h3>
+                <div class="task-group">
+                    <ul class="task-list" id="expenses-history-list"></ul>
                 </div>
             </section>
         </div>
@@ -323,11 +389,12 @@
                             <span class="task-text">Notificações</span>
                             <i class="ph ph-caret-right text-muted"></i>
                         </li>
-                        <li class="task-item setting-item" style="cursor: pointer;">
-                            <i class="ph ph-palette text-muted" style="font-size: 1.2rem;"></i>
-                            <span class="task-text">Aparência</span>
-                            <i class="ph ph-caret-right text-muted"></i>
-                        </li>
+                        <li class="task-item setting-item" id="btn-open-theme-modal" style="cursor: pointer;">
+    <i class="ph ph-palette text-muted" style="font-size: 1.2rem;"></i>
+    <span class="task-text">Aparência</span>
+    <span id="current-theme-label" style="font-size: 0.8rem; color: var(--primary); font-weight: 600;">Sistema</span>
+    <i class="ph ph-caret-right text-muted"></i>
+</li>
                     </ul>
                 </div>
             </section>
@@ -528,6 +595,14 @@
                     </select>
                 </div>
 
+                <div class="form-group" id="fin-settle-mode-group">
+    <label>Como fazer o acerto de quem pagou a mais?</label>
+    <select id="fin-settle-mode-select" class="form-control">
+        <option value="prioritize">Priorizar próximos boletos (Criar crédito)</option>
+        <option value="transfer">Transferência Direta (Cobrar via Pix)</option>
+    </select>
+</div>
+
                 <button type="submit" class="btn-primary">Salvar Preferências</button>
             </form>
         </div>
@@ -556,6 +631,16 @@
                         <input type="date" id="expense-date" class="form-control" required>
                     </div>
                 </div>
+                <div class="form-group">
+    <label>Categoria</label>
+    <select id="expense-category" class="form-control">
+        <option value="moradia">🏠 Moradia (Aluguel, Luz, Internet)</option>
+        <option value="mercado">🛒 Mercado e Alimentação</option>
+        <option value="transporte">🚗 Transporte (Combustível, App)</option>
+        <option value="lazer">🍿 Lazer, Ifood e Assinaturas</option>
+        <option value="outros">✨ Outros</option>
+    </select>
+</div>
                 <div class="form-group">
                     <label>Quem é responsável?</label>
                     <select id="expense-owner" class="form-control">
@@ -601,6 +686,53 @@
             </div>
         </div>
         
+        <!-- MODAL: ESCOLHER TEMA -->
+            <div class="modal-overlay" id="theme-modal-overlay"></div>
+            <div class="bottom-sheet" id="theme-bottom-sheet">
+                <div class="sheet-handle"></div>
+                <div class="sheet-header">
+                    <h2>Aparência</h2>
+                    <button class="btn-icon" id="btn-close-theme-modal" style="font-size: 1.2rem;"><i class="ph ph-x"></i></button>
+                </div>
+                
+                <div class="sheet-body" style="display: flex; flex-direction: column; gap: 12px;">
+                    <button class="btn-theme-option btn-primary" data-theme-value="system" style="background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0;">Sistema (Automático)</button>
+                    <button class="btn-theme-option btn-primary" data-theme-value="light" style="background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0;">Claro</button>
+                    <button class="btn-theme-option btn-primary" data-theme-value="dark" style="background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0;">Escuro</button>
+                </div>
+            </div>
+
+            <!-- MODAL: ESCOLHER EMOJI (AVATAR) -->
+            <div class="modal-overlay" id="emoji-picker-overlay"></div>
+            <div class="bottom-sheet" id="emoji-picker-sheet">
+                <div class="sheet-handle"></div>
+                <div class="sheet-header">
+                    <h2>Escolha um Emoji</h2>
+                    <button class="btn-icon" id="btn-close-emoji-picker" style="font-size: 1.2rem;"><i class="ph ph-x"></i></button>
+                </div>
+                
+                <div class="sheet-body">
+                    <div id="emoji-grid" class="emoji-grid">
+                        <!-- Os emojis serão injetados aqui pelo JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL: HISTÓRICO DA META -->
+    <div class="modal-overlay" id="goal-history-modal-overlay"></div>
+    <div class="bottom-sheet" id="goal-history-bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+            <h2 id="goal-history-title">Histórico</h2>
+            <button class="btn-icon" id="btn-close-goal-history" style="font-size: 1.2rem;"><i class="ph ph-x"></i></button>
+        </div>
+        <div class="sheet-body">
+            <ul class="task-list" id="goal-history-list" style="max-height: 50vh; overflow-y: auto;">
+                <!-- O JS vai injetar os itens do histórico aqui -->
+            </ul>
+        </div>
+    </div>
+
     </main>
     <script type="module" src="js/app.js"></script>
 </body>

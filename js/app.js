@@ -5,6 +5,7 @@ import { initLists } from './modules/lists.js';
 import { initAgenda } from './modules/agenda.js';
 import { initGoals } from './modules/goals.js';
 import { initFinances } from './modules/finances.js';
+import { initSettings } from './modules/settings.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
@@ -14,4 +15,5 @@ document.addEventListener('DOMContentLoaded', () => {
     initAgenda();
     initGoals();
     initFinances();
+    initSettings();
 });
