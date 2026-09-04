@@ -1,13 +1,13 @@
 import { store } from '../store.js';
-import { getLocalDateString, escapeHTML, triggerHaptic, getAvatarHtml, openModal, closeAllModals } from '../utils.js';
+import { getLocalDateString, escapeHTML, triggerHaptic, getAvatarHtml, openModal, closeAllModals, formatCurrency } from '../utils.js';
 
 const MOODS = [
     { id: 'energia', icon: '⚡', label: 'Cheio(a) de energia' },
     { id: 'cansado', icon: '🥱', label: 'Cansado(a)' },
     { id: 'lanche', icon: '🍔', label: 'Querendo lanche' },
     { id: 'apaixonado', icon: '🥰', label: 'Apaixonado(a)' },
-    { id: 'estresse', icon: '🤯', label: 'Estressado(a)' },
-    { id: 'feliz', icon: '🤩', label: 'Feliz da vida' }
+    { id: 'estresse', icon: '😤', label: 'Estressado(a)' },
+    { id: 'feliz', icon: '✨', label: 'Feliz da vida' }
 ];
 
 const PRESET_COVERS = [
@@ -21,8 +21,7 @@ let targetPerson = 'p1';
 
 export const renderHome = () => {
     if (!store.profile) return;
-    
-    // Atualiza Imagem de Fundo (Capa)
+     
     const heroEl = document.getElementById('main-hero');
     if (heroEl) {
         const cover = store.profile.heroCover || PRESET_COVERS[0];
@@ -54,7 +53,6 @@ export const renderHome = () => {
         store.setMoods({ p1: null, p2: null, date: todayStr });
     }
 
-    // Usando a nova utilidade para os Avatares do Humor e do Header
     const renderMoodAvatar = (personId) => {
         document.getElementById(`home-avatar-${personId}`)?.replaceWith(
             Object.assign(document.createElement('div'), { outerHTML: getAvatarHtml(personId, '34px') })
@@ -62,7 +60,7 @@ export const renderHome = () => {
         document.getElementById(`mood-avatar-container-${personId}`)?.replaceChildren(
             Object.assign(document.createElement('div'), { innerHTML: getAvatarHtml(personId, '38px') }).firstChild
         );
-        
+                 
         const moodData = store.moods[personId] ? MOODS.find(m => m.id === store.moods[personId]) : null;
         if (moodData) {
             document.getElementById(`mood-icon-${personId}`).textContent = moodData.icon;
@@ -73,9 +71,17 @@ export const renderHome = () => {
     renderMoodAvatar('p1');
     renderMoodAvatar('p2');
 
-    // Resumos...
+    // Resumo de Tarefas
     const pendingCount = (store.lists || []).reduce((acc, list) => acc + list.items.filter(i => !i.completed).length, 0);
     document.getElementById('home-tasks-desc').textContent = pendingCount === 0 ? "Tudo em dia!" : `${pendingCount} item(s)`;
+
+    // Resumo de Finanças (Correção do "Calculando...")
+    const pendingExpenses = (store.expenses || []).filter(e => !e.completed);
+    const totalPendingAmount = pendingExpenses.reduce((acc, exp) => acc + (exp.amount || 0), 0);
+    const finDescEl = document.getElementById('home-fin-desc');
+    if (finDescEl) {
+        finDescEl.textContent = pendingExpenses.length === 0 ? "Tudo pago!" : `${formatCurrency(totalPendingAmount)} (${pendingExpenses.length} pendente)`;
+    }
 
     const agendaList = document.getElementById('home-agenda-list');
     if (agendaList) {
@@ -101,13 +107,18 @@ export const renderHome = () => {
 };
 
 export const initHome = () => {
-    renderHome();
-    
-    // Listeners do Overlay Geral (Fecha todos os modais)
-    document.getElementById('general-overlay')?.addEventListener('click', closeAllModals);
-    document.querySelectorAll('.btn-close-modal').forEach(btn => btn.addEventListener('click', closeAllModals));
+    renderHome();          
 
-    // Editar Capa Hero
+    document.getElementById('general-overlay')?.addEventListener('click', () => closeAllModals(false));
+    document.querySelectorAll('.btn-close-modal').forEach(btn => btn.addEventListener('click', () => closeAllModals(false)));
+
+    document.getElementById('home-tasks-card')?.addEventListener('click', () => {
+        document.querySelector('.nav-item[data-target="view-lists"]')?.click();
+    });
+    document.getElementById('home-fin-card')?.addEventListener('click', () => {
+        document.querySelector('.nav-item[data-target="view-finances"]')?.click();
+    });
+
     document.getElementById('btn-edit-hero')?.addEventListener('click', () => {
         const grid = document.getElementById('hero-gallery-grid');
         grid.innerHTML = '';
@@ -117,14 +128,13 @@ export const initHome = () => {
             btn.style.backgroundImage = `url(${url})`;
             btn.addEventListener('click', () => {
                 store.setProfile({ ...store.profile, heroCover: url });
-                triggerHaptic(20); renderHome(); closeAllModals();
+                triggerHaptic(20); renderHome(); closeAllModals(true);
             });
             grid.appendChild(btn);
         });
         openModal('hero-bottom-sheet');
     });
 
-    // Upload de Foto Capa
     document.getElementById('btn-upload-hero')?.addEventListener('click', () => document.getElementById('file-hero-upload').click());
     document.getElementById('file-hero-upload')?.addEventListener('change', (e) => {
         const file = e.target.files[0];
@@ -132,17 +142,16 @@ export const initHome = () => {
             const reader = new FileReader();
             reader.onload = (ev) => {
                 store.setProfile({ ...store.profile, heroCover: ev.target.result });
-                triggerHaptic(30); renderHome(); closeAllModals();
+                triggerHaptic(30); renderHome(); closeAllModals(true);
             };
             reader.readAsDataURL(file);
         }
     });
 
-    // Mood Modals
     const optionsContainer = document.getElementById('mood-options-container');
     document.getElementById('btn-mood-p1')?.addEventListener('click', () => { targetPerson = 'p1'; openModal('mood-bottom-sheet'); });
     document.getElementById('btn-mood-p2')?.addEventListener('click', () => { targetPerson = 'p2'; openModal('mood-bottom-sheet'); });
-
+    
     if (optionsContainer) {
         optionsContainer.innerHTML = '';
         MOODS.forEach(mood => {
@@ -153,7 +162,7 @@ export const initHome = () => {
                 const currentMoods = store.moods ? { ...store.moods } : { p1: null, p2: null, date: getLocalDateString(new Date()) };
                 currentMoods[targetPerson] = mood.id;
                 store.setMoods(currentMoods);
-                triggerHaptic(30); renderHome(); closeAllModals();
+                triggerHaptic(30); renderHome(); closeAllModals(true);
             });
             optionsContainer.appendChild(btn);
         });

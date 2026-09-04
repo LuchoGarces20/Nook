@@ -5,14 +5,13 @@ import { renderHome } from './home.js';
 
 let tempAvatarP1 = null;
 let tempAvatarP2 = null;
-let currentTargetPerson = null; // Guarda quem abriu o menu de emoji (p1 ou p2)
+let currentTargetPerson = null; 
 
-// Lista curada de emojis para avatares (adicione ou remova como quiser!)
 const EMOJI_LIST = [
-    '🐶', '🐱', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', 
-    '🐸', '🐵', '🐣', '🦉', '🐝', '🦄', '🌸', '🌻', '🌵', '🥑', 
-    '🍔', '🍕', '🍩', '☕', '👽', '👻', '🤖', '👾', '👑', '💎', 
-    '🚀', '🌙', '⭐', '🔥', '💖', '🦦', '🦥', '🦕', '🦖', '🐉'
+    '👨', '👩', '🧑', '👱‍♂️', '👱‍♀️', '🧔', '👴', '👵', '🧓',
+    '🐶', '🐱', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮',
+    '🐷', '🐸', '🐵', '🦄', '🐝', '🐛', '🦋', '🐢', '🐙',
+    '🍕', '🍔', '🌮', '🍣', '☕', '🍩', '🍺', '🥑', '🌶️'
 ];
 
 export const renderAvatar = (elements, name, avatarData) => {
@@ -37,29 +36,31 @@ export const renderAvatar = (elements, name, avatarData) => {
 export const updateProfileUI = () => {
     if (!store.profile) return;
     
-    renderAvatar(document.querySelectorAll('.my-avatar'), store.profile.p1, store.profile.avatarP1);
-    renderAvatar(document.querySelectorAll('.partner-avatar'), store.profile.p2, store.profile.avatarP2);
+    const p1 = store.profile.p1;
+    const p2 = store.profile.p2;
 
-    const init1 = getInitials(store.profile.p1);
-    const init2 = getInitials(store.profile.p2);
+    renderAvatar(document.querySelectorAll('.my-avatar'), p1, store.profile.avatarP1);
+    renderAvatar(document.querySelectorAll('.partner-avatar'), p2, store.profile.avatarP2);
 
-    const updateSelect = (selectId) => {
-        const select = document.getElementById(selectId);
-        if (!select) return;
-        const optP1 = select.querySelector('option[value="IS"]');
-        const optP2 = select.querySelector('option[value="VO"]');
-        if (optP1) optP1.textContent = `${init1} (${store.profile.p1})`;
-        if (optP2) optP2.textContent = `${init2} (${store.profile.p2})`;
-    };
-    updateSelect('event-owner');
-    updateSelect('goal-owner');
-    updateSelect('expense-owner');
+    // BANINDO P1 E P2 DO SISTEMA - Substituindo pelos nomes reais em TODOS os menus suspensos
+    document.querySelectorAll('option[value="IS"]').forEach(opt => opt.textContent = p1);
+    document.querySelectorAll('option[value="VO"]').forEach(opt => opt.textContent = p2);
 
-    const finLabels = document.querySelectorAll('#fin-income-inputs label');
-    if (finLabels.length >= 2) {
-        finLabels[0].textContent = `${init1} (R$)`;
-        finLabels[1].textContent = `${init2} (R$)`;
-    }
+    // Atualizando textos de regras de finanças
+    const opt100P1 = document.getElementById('opt-100-p1');
+    const opt100P2 = document.getElementById('opt-100-p2');
+    if (opt100P1) opt100P1.textContent = `100% pago por ${p1}`;
+    if (opt100P2) opt100P2.textContent = `100% pago por ${p2}`;
+
+    const lblIncP1 = document.getElementById('label-fin-inc-p1');
+    const lblIncP2 = document.getElementById('label-fin-inc-p2');
+    if (lblIncP1) lblIncP1.textContent = `Renda de ${p1} (R$)`;
+    if (lblIncP2) lblIncP2.textContent = `Renda de ${p2} (R$)`;
+
+    const propLabelIs = document.getElementById('prop-label-is');
+    const propLabelVo = document.getElementById('prop-label-vo');
+    if (propLabelIs) propLabelIs.textContent = `${p1}: `;
+    if (propLabelVo) propLabelVo.textContent = `${p2}: `;
 };
 
 const processImageFile = (file, callback) => {
@@ -78,7 +79,6 @@ const processImageFile = (file, callback) => {
             } else {
                 if (height > maxSize) { width *= maxSize / height; height = maxSize; }
             }
-
             canvas.width = width;
             canvas.height = height;
             const ctx = canvas.getContext('2d');
@@ -98,7 +98,6 @@ const initEmojiPicker = () => {
     const grid = document.getElementById('emoji-grid');
     const btnClose = document.getElementById('btn-close-emoji-picker');
 
-    // Preenche o modal com os emojis
     if (grid && grid.children.length === 0) {
         EMOJI_LIST.forEach(emoji => {
             const btn = document.createElement('button');
@@ -135,7 +134,6 @@ export const openEmojiPicker = (personId) => {
     document.getElementById('emoji-picker-overlay')?.classList.add('active');
     document.getElementById('emoji-picker-sheet')?.classList.add('active');
 };
-// ---------------------------------
 
 const setupAvatarPicker = (personId) => {
     const btnFoto = document.getElementById(`btn-foto-${personId}`);
@@ -151,8 +149,7 @@ const setupAvatarPicker = (personId) => {
     });
 
     btnFoto?.addEventListener('click', () => fileInput.click());
-
-    // Abre o Modal em vez do Prompt
+    
     btnEmoji?.addEventListener('click', () => {
         openEmojiPicker(personId);
     });
@@ -174,11 +171,11 @@ export const initOnboarding = () => {
     const formOnboarding = document.getElementById('form-onboarding');
     const btnReopen = document.getElementById('btn-reopen-onboarding');
     const views = document.querySelectorAll('.view');
-
+    
     const isProfileValid = store.profile?.p1 && store.profile?.p2 && store.profile?.startDate;
 
     views.forEach(v => v.classList.remove('active'));
-
+    
     initEmojiPicker();
     setupAvatarPicker('p1');
     setupAvatarPicker('p2');
@@ -215,6 +212,7 @@ export const initOnboarding = () => {
             views.forEach(v => v.classList.remove('active'));
             if (homeView) homeView.classList.add('active');
             if (bottomBar) bottomBar.classList.remove('hidden');
+            
             updateProfileUI();
             renderFinances(); 
             renderHome();
@@ -231,7 +229,6 @@ export const initOnboarding = () => {
                 
                 tempAvatarP1 = store.profile.avatarP1 || null;
                 tempAvatarP2 = store.profile.avatarP2 || null;
-
                 renderAvatar([document.getElementById('preview-p1')], store.profile.p1, tempAvatarP1);
                 renderAvatar([document.getElementById('preview-p2')], store.profile.p2, tempAvatarP2);
             }

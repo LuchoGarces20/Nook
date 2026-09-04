@@ -3,6 +3,7 @@ import { triggerHaptic, escapeHTML, getAvatarHtml, openModal, closeAllModals } f
 
 let activeListId = 'atividades';
 let draggedItemIndex = null;
+let activeFilter = 'all'; // NOVO: Controle do filtro ativo da lista
 
 const togglePriority = (current) => {
     if (!current || current === 'none') return 'urgent';
@@ -17,19 +18,8 @@ export const renderLists = () => {
 
     const currentList = store.lists.find(l => l.id === activeListId) || store.lists[0];
     if(document.getElementById('active-list-header-title')) document.getElementById('active-list-header-title').textContent = currentList.name;
-    
-    // Atualiza os labels dos selects dinamicamente
-    if (store.profile) {
-        const updateSelectNames = (prefix) => {
-            const optP1 = document.getElementById(`opt-${prefix}-p1`);
-            const optP2 = document.getElementById(`opt-${prefix}-p2`);
-            if (optP1) optP1.textContent = store.profile.p1;
-            if (optP2) optP2.textContent = store.profile.p2;
-        };
-        updateSelectNames('owner');
-        updateSelectNames('edit-task');
-    }
 
+    // Renderizando as Abas das Listas (Mercado, Casa, etc.)
     tabsContainer.innerHTML = '';
     store.lists.forEach(list => {
         const btn = document.createElement('button');
@@ -52,14 +42,57 @@ export const renderLists = () => {
     });
     tabsContainer.appendChild(btnAddList);
 
-    taskContainer.innerHTML = '';
-    const pendingItems = currentList.items.filter(i => !i.completed);
-    document.getElementById('lists-section-title').textContent = `PENDENTES (${pendingItems.length})`;
+    // --- NOVO: Renderiza o Filtro de Responsável ---
+    const sectionTitle = document.getElementById('lists-section-title');
+    let filtersContainer = document.getElementById('list-filters-container');
 
-    if (currentList.items.length === 0) {
-        taskContainer.innerHTML = `<li style="text-align:center; padding: 24px 0; color: var(--text-muted); font-size: 0.88rem;">Nenhum item nesta lista.</li>`;
+    if (!filtersContainer && sectionTitle) {
+        filtersContainer = document.createElement('div');
+        filtersContainer.id = 'list-filters-container';
+        filtersContainer.className = 'tabs';
+        filtersContainer.style.cssText = 'margin: 12px 0 16px 12px; padding-bottom: 4px;'; // Alinhado visualmente
+        sectionTitle.parentNode.insertBefore(filtersContainer, sectionTitle.nextSibling);
+    }
+
+    if (filtersContainer) {
+        filtersContainer.innerHTML = '';
+        const p1Name = store.profile?.p1 || 'Minhas';
+        const p2Name = store.profile?.p2 || 'Parceiro';
+
+        const filters = [
+            { id: 'all', label: 'Todas' },
+            { id: 'IS', label: p1Name },
+            { id: 'VO', label: p2Name },
+            { id: 'Casal', label: 'Nós (Casal)' }
+        ];
+
+        filters.forEach(f => {
+            const btn = document.createElement('button');
+            btn.className = `tab-pill ${activeFilter === f.id ? 'active' : 'outline'}`;
+            btn.style.cssText = 'padding: 6px 14px; font-size: 0.8rem;';
+            btn.textContent = f.label;
+            btn.addEventListener('click', () => {
+                triggerHaptic(10);
+                activeFilter = f.id;
+                renderLists();
+            });
+            filtersContainer.appendChild(btn);
+        });
+    }
+    // -----------------------------------------------
+
+    taskContainer.innerHTML = '';
+    
+    // Aplica o filtro na lista de itens visualmente
+    const filteredItems = activeFilter === 'all' ? currentList.items : currentList.items.filter(i => i.owner === activeFilter);
+    const pendingCount = filteredItems.filter(i => !i.completed).length;
+    
+    if (sectionTitle) sectionTitle.textContent = `PENDENTES (${pendingCount})`;
+
+    if (filteredItems.length === 0) {
+        taskContainer.innerHTML = `<li style="text-align:center; padding: 24px 0; color: var(--text-muted); font-size: 0.88rem;">Nenhum item encontrado.</li>`;
     } else {
-        currentList.items.forEach((item, index) => {
+        filteredItems.forEach((item) => {
             let priorityUI = '<i class="ph ph-flag text-muted"></i>';
             let prioritySubtext = '';
             if (item.priority === 'urgent') { priorityUI = '🚩'; prioritySubtext = '<span style="font-size: 0.65rem; color: #E63946; font-weight: 700; margin-top: 2px;">Urgente</span>'; }
@@ -68,7 +101,8 @@ export const renderLists = () => {
             const li = document.createElement('li');
             li.className = `task-item ${item.completed ? 'completed' : ''}`;
             li.draggable = true;
-            li.dataset.index = index;
+            li.dataset.id = item.id; // Guarda o ID para o drag and drop funcionar com filtros
+            
             li.innerHTML = `
                 <div class="checkbox"><i class="ph-bold ph-check"></i></div>
                 <div class="task-content" style="flex: 1; display: flex; flex-direction: column;" title="Arraste para reordenar">
@@ -94,17 +128,23 @@ export const renderLists = () => {
                 openModal('task-edit-bottom-sheet');
             });
 
-            // DRAG AND DROP
-            li.addEventListener('dragstart', (e) => { draggedItemIndex = index; setTimeout(() => li.classList.add('dragging'), 0); });
+            // DRAG AND DROP (Ajustado para encontrar o index real ignorando os filtros)
+            li.addEventListener('dragstart', (e) => { 
+                draggedItemIndex = currentList.items.findIndex(i => i.id === item.id); 
+                setTimeout(() => li.classList.add('dragging'), 0); 
+            });
             li.addEventListener('dragover', (e) => { e.preventDefault(); li.classList.add('drag-over'); });
             li.addEventListener('dragleave', () => li.classList.remove('drag-over'));
             li.addEventListener('drop', (e) => {
                 e.stopPropagation(); li.classList.remove('drag-over');
-                if (draggedItemIndex !== null && draggedItemIndex !== index) {
-                    const items = currentList.items;
-                    const [draggedItem] = items.splice(draggedItemIndex, 1);
-                    items.splice(index, 0, draggedItem);
-                    store.setLists([...store.lists]); triggerHaptic(20); renderLists();
+                if (draggedItemIndex !== null) {
+                    const dropTargetIndex = currentList.items.findIndex(i => i.id === item.id);
+                    if (draggedItemIndex !== dropTargetIndex && dropTargetIndex !== -1) {
+                        const items = currentList.items;
+                        const [draggedItem] = items.splice(draggedItemIndex, 1);
+                        items.splice(dropTargetIndex, 0, draggedItem);
+                        store.setLists([...store.lists]); triggerHaptic(20); renderLists();
+                    }
                 }
             });
             li.addEventListener('dragend', () => { li.classList.remove('dragging'); li.classList.remove('drag-over'); draggedItemIndex = null; });
@@ -132,7 +172,7 @@ export const initLists = () => {
         }
     });
 
-    // Nova Tarefa (Agora pega o responsável do mini Select)
+    // Nova Tarefa
     document.getElementById('form-add-task')?.addEventListener('submit', (e) => {
         e.preventDefault();
         const text = document.getElementById('input-task-text').value.trim();
@@ -140,6 +180,9 @@ export const initLists = () => {
         if (!text) return;
         const currentList = store.lists.find(l => l.id === activeListId);
         if (currentList) {
+            // Regra: Se a pessoa adicionar uma tarefa, forçamos o filtro para mostrar a nova tarefa!
+            if (activeFilter !== 'all' && activeFilter !== owner) activeFilter = 'all';
+            
             currentList.items.push({ id: Date.now(), text, completed: false, priority: 'none', owner });
             store.setLists([...store.lists]);
             triggerHaptic(20); document.getElementById('input-task-text').value = ''; renderLists();

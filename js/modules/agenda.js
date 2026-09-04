@@ -1,5 +1,5 @@
 import { store } from '../store.js';
-import { triggerHaptic, getLocalDateString, getInitials, escapeHTML } from '../utils.js';
+import { triggerHaptic, getLocalDateString, getInitials, escapeHTML, openModal, closeAllModals } from '../utils.js';
 
 let selectedDateStr = getLocalDateString(new Date());
 
@@ -11,7 +11,7 @@ const renderDateScroller = () => {
     const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
     const [y, m, d] = selectedDateStr.split('-').map(Number);
     const baseDate = new Date(y, m - 1, d);
-
+    
     for (let i = -4; i <= 10; i++) {
         const tempDate = new Date(baseDate);
         tempDate.setDate(baseDate.getDate() + i);
@@ -37,25 +37,26 @@ const renderAgendaView = () => {
     const selectedListEl = document.getElementById('agenda-selected-list');
     const allListEl = document.getElementById('agenda-all-list');
     if (!selectedListEl || !allListEl) return;
-
-    selectedListEl.innerHTML = ''; allListEl.innerHTML = '';
+    
+    selectedListEl.innerHTML = ''; 
+    allListEl.innerHTML = '';
+    
     const [y, m, d] = selectedDateStr.split('-');
     const todayStr = getLocalDateString(new Date());
     document.getElementById('agenda-selected-title').textContent = selectedDateStr === todayStr ? `HOJE - ${d}/${m}/${y}` : `DIA SELECIONADO - ${d}/${m}/${y}`;
-
+    
     const p1Init = store.profile ? getInitials(store.profile.p1) : 'IS';
     const p2Init = store.profile ? getInitials(store.profile.p2) : 'VO';
-
+    
     const createEl = (ev, showBadge) => {
         let displayOwner = ev.owner;
         if (ev.owner === 'VO') displayOwner = p2Init;
         if (ev.owner === 'IS') displayOwner = p1Init;
         let badgeClass = (ev.owner === 'VO' || ev.owner === p2Init) ? 'bg-muted' : '';
         if (ev.owner === 'Casal') { badgeClass = 'bg-casal'; displayOwner = 'NOS'; }
-
+        
         const safeTitle = escapeHTML(ev.title);
         const safeSubtitle = ev.subtitle ? escapeHTML(ev.subtitle) : '';
-
         const [ey, em, ed] = ev.date.split('-');
         const dateTag = showBadge ? `<span style="font-size: 0.75rem; background: var(--primary-light); color: var(--primary); padding: 2px 6px; border-radius: 6px; font-weight: 700; margin-right: 6px;">${ed}/${em}</span>` : '';
         
@@ -72,7 +73,8 @@ const renderAgendaView = () => {
         li.querySelector('.btn-delete-event').addEventListener('click', () => {
             triggerHaptic(20);
             store.setAgenda(store.agenda.filter(e => e.id !== ev.id));
-            renderDateScroller(); renderAgendaView();
+            renderDateScroller(); 
+            renderAgendaView();
         });
         return li;
     };
@@ -94,23 +96,18 @@ export const initAgenda = () => {
             if (selectedDate) {
                 selectedDateStr = selectedDate;
                 renderDateScroller(); 
-                renderAgendaView();   
+                renderAgendaView(); 
                 triggerHaptic(15);
             }
         });
     }
 
     const form = document.getElementById('form-add-event');
-    const overlay = document.getElementById('event-modal-overlay');
-    const sheet = document.getElementById('event-bottom-sheet');
-    const closeModal = () => { overlay.classList.remove('active'); sheet.classList.remove('active'); form?.reset(); };
-
+    
     document.getElementById('btn-open-event-modal')?.addEventListener('click', () => {
-        triggerHaptic(10); overlay.classList.add('active'); sheet.classList.add('active');
+        openModal('event-bottom-sheet');
         document.getElementById('event-date').value = selectedDateStr;
     });
-    
-    document.getElementById('btn-close-event-modal')?.addEventListener('click', closeModal);
 
     form?.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -122,8 +119,13 @@ export const initAgenda = () => {
             owner: document.getElementById('event-owner').value,
             subtitle: document.getElementById('event-subtitle').value
         }]);
-        renderDateScroller(); renderAgendaView(); triggerHaptic(30); closeModal();
+        renderDateScroller(); 
+        renderAgendaView(); 
+        triggerHaptic(30); 
+        closeAllModals();
+        form?.reset();
     });
 
-    renderDateScroller(); renderAgendaView();
+    renderDateScroller(); 
+    renderAgendaView();
 };

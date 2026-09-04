@@ -1,5 +1,5 @@
 import { store } from '../store.js';
-import { triggerHaptic, formatCurrency, getInitials, escapeHTML, getLocalDateString } from '../utils.js';
+import { triggerHaptic, formatCurrency, getInitials, escapeHTML, getLocalDateString, openModal, closeAllModals } from '../utils.js';
 
 export const renderGoals = () => {
     const goalsContainer = document.getElementById('goals-list-container');
@@ -17,7 +17,6 @@ export const renderGoals = () => {
         store.goals.forEach(goal => {
             if (goal.type === 'financial') totalSaved += goal.current;
             
-            // Proteção contra divisão por zero
             const percent = goal.target > 0 ? Math.min(100, Math.round((goal.current / goal.target) * 100)) : 0;
             
             let displayOwner = goal.owner;
@@ -38,18 +37,14 @@ export const renderGoals = () => {
                 const deadlineDate = new Date(y, m - 1, d);
                 const diffDays = Math.ceil((deadlineDate - today) / (1000 * 60 * 60 * 24));
                 const remainingMoney = goal.target - goal.current;
-
                 if (diffDays > 0) {
-                    const diffMonths = diffDays / 30.44; // Média de dias no mês
+                    const diffMonths = diffDays / 30.44;
                     const suggestion = diffMonths >= 1
                         ? `${formatCurrency(remainingMoney / diffMonths)}/mês`
                         : `${formatCurrency(remainingMoney / (diffDays / 7 || 1))}/semana`;
-
-                    deadlineText = `<div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; padding: 8px 12px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px dashed var(--border-color);">
-                        ⏳ Guardem aprox. <strong>${suggestion}</strong> para bater a meta no prazo.
-                    </div>`;
+                    deadlineText = `<div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; padding: 8px 12px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px dashed var(--border-color);">Guardem aprox. <strong>${suggestion}</strong> para bater a meta no prazo.</div>`;
                 } else {
-                    deadlineText = `<div style="font-size: 0.75rem; color: #E63946; margin-top: 8px;">⏳ Prazo esgotado!</div>`;
+                    deadlineText = `<div style="font-size: 0.75rem; color: #E63946; margin-top: 8px;">Prazo esgotado!</div>`;
                 }
             }
 
@@ -84,20 +79,15 @@ export const renderGoals = () => {
                 ${deadlineText}
             `;
 
-            // CLIQUE NO HEADER: ABRIR HISTÓRICO
             card.querySelector('.goal-header').addEventListener('click', () => {
                 openHistoryModal(goal);
             });
 
-            // CLIQUE EM GUARDAR (FINANCEIRO)
             card.querySelector('.btn-action-financial')?.addEventListener('click', () => {
                 document.getElementById('deposit-goal-id').value = goal.id;
-                document.getElementById('deposit-modal-overlay').classList.add('active');
-                document.getElementById('deposit-bottom-sheet').classList.add('active');
-                triggerHaptic(10);
+                openModal('deposit-bottom-sheet');
             });
 
-            // CLIQUE EM +1 (HÁBITO)
             card.querySelector('.btn-action-habit')?.addEventListener('click', () => {
                 if (goal.current < goal.target) {
                     const prev = goal.current;
@@ -111,9 +101,8 @@ export const renderGoals = () => {
                     });
                     store.setGoals([...store.goals]);
                     
-                    // Celebração de 100%
                     if (goal.current >= goal.target && prev < goal.target) {
-                        triggerHaptic([200, 100, 200, 100, 200]); // Vibração de Sucesso
+                        triggerHaptic([200, 100, 200, 100, 200]);
                         if(window.confetti) confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#E07A5F', '#DB2777', '#FDF2F8'] });
                     } else {
                         triggerHaptic(20);
@@ -122,7 +111,6 @@ export const renderGoals = () => {
                 }
             });
 
-            // EXCLUIR META
             card.querySelector('.btn-delete-goal').addEventListener('click', () => {
                 triggerHaptic(20);
                 store.setGoals(store.goals.filter(g => g.id !== goal.id));
@@ -137,18 +125,16 @@ export const renderGoals = () => {
     if(document.getElementById('metric-goals-count')) document.getElementById('metric-goals-count').textContent = store.goals.length;
 };
 
-// --- LÓGICA DO MODAL DE HISTÓRICO ---
 const openHistoryModal = (goal) => {
     triggerHaptic(10);
     document.getElementById('goal-history-title').textContent = `Histórico: ${goal.title}`;
     const listEl = document.getElementById('goal-history-list');
     listEl.innerHTML = '';
-
     const history = goal.history || [];
+    
     if (history.length === 0) {
         listEl.innerHTML = `<li style="text-align:center; padding: 24px 0; color: var(--text-muted); font-size: 0.88rem;">Nenhum registro ainda.</li>`;
     } else {
-        // Inverte o array para mostrar o mais recente no topo
         [...history].reverse().forEach(entry => {
             const [y, m, d] = entry.date.split('-');
             const valText = goal.type === 'financial' ? formatCurrency(entry.amount) : `+${entry.amount} ${goal.unit || 'vezes'}`;
@@ -164,29 +150,16 @@ const openHistoryModal = (goal) => {
             listEl.appendChild(li);
         });
     }
-
-    document.getElementById('goal-history-modal-overlay').classList.add('active');
-    document.getElementById('goal-history-bottom-sheet').classList.add('active');
+    openModal('goal-history-bottom-sheet');
 };
 
 export const initGoals = () => {
-    // FECHAR MODAL DE HISTÓRICO
-    const closeHist = () => {
-        document.getElementById('goal-history-modal-overlay')?.classList.remove('active');
-        document.getElementById('goal-history-bottom-sheet')?.classList.remove('active');
-    };
-    document.getElementById('btn-close-goal-history')?.addEventListener('click', closeHist);
-    document.getElementById('goal-history-modal-overlay')?.addEventListener('click', closeHist);
-
-    // MODAL DE NOVA META
     const formGoal = document.getElementById('form-add-goal');
-    const overlay = document.getElementById('goal-modal-overlay');
-    const sheet = document.getElementById('goal-bottom-sheet');
-    const closeModal = () => { overlay.classList.remove('active'); sheet.classList.remove('active'); formGoal?.reset(); };
     
-    document.getElementById('btn-open-goal-modal')?.addEventListener('click', () => { triggerHaptic(10); overlay.classList.add('active'); sheet.classList.add('active'); });
-    document.getElementById('btn-close-goal-modal')?.addEventListener('click', closeModal);
-    
+    document.getElementById('btn-open-goal-modal')?.addEventListener('click', () => { 
+        openModal('goal-bottom-sheet'); 
+    });
+
     formGoal?.addEventListener('submit', (e) => {
         e.preventDefault();
         const type = document.getElementById('goal-type').value;
@@ -195,16 +168,15 @@ export const initGoals = () => {
         const newGoal = {
             id: Date.now(), type,
             title: document.getElementById('goal-title').value,
-            icon: document.getElementById('goal-icon').value || '⭐',
+            icon: document.getElementById('goal-icon').value || '🎯',
             owner: document.getElementById('goal-owner').value,
             target: isNaN(targetValue) || targetValue <= 0 ? 1 : targetValue,
             current: type === 'financial' ? parseFloat(document.getElementById('goal-initial-fin').value) || 0 : 0,
             unit: type === 'habit' ? document.getElementById('goal-unit-habit').value : null,
             deadline: type === 'financial' ? document.getElementById('goal-deadline-fin').value : null,
-            history: [] // Inicializa com histórico vazio
+            history: []
         };
 
-        // Adiciona registro de aporte inicial (se houver)
         if (newGoal.current > 0) {
             newGoal.history.push({
                 date: getLocalDateString(new Date()),
@@ -212,18 +184,14 @@ export const initGoals = () => {
                 amount: newGoal.current
             });
         }
-
         store.setGoals([...store.goals, newGoal]);
-        triggerHaptic(30); renderGoals(); closeModal();
+        triggerHaptic(30); 
+        renderGoals(); 
+        closeAllModals();
+        formGoal?.reset();
     });
 
-    // MODAL DE APORTE FINANCEIRO
     const formDep = document.getElementById('form-add-deposit');
-    const overlayDep = document.getElementById('deposit-modal-overlay');
-    const sheetDep = document.getElementById('deposit-bottom-sheet');
-    const closeDep = () => { overlayDep.classList.remove('active'); sheetDep.classList.remove('active'); formDep?.reset(); };
-    
-    document.getElementById('btn-close-deposit-modal')?.addEventListener('click', closeDep);
     
     formDep?.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -241,10 +209,8 @@ export const initGoals = () => {
                 owner: store.profile ? store.profile.p1 : 'IS',
                 amount: amount
             });
-
             store.setGoals([...store.goals]);
             
-            // Celebração de 100%
             if (targetGoal.current >= targetGoal.target && prev < targetGoal.target) {
                 triggerHaptic([200, 100, 200, 100, 200]);
                 if(window.confetti) confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#E07A5F', '#DB2777', '#FDF2F8'] });
@@ -253,7 +219,8 @@ export const initGoals = () => {
             }
             renderGoals();
         }
-        closeDep();
+        closeAllModals();
+        formDep?.reset();
     });
 
     renderGoals();
