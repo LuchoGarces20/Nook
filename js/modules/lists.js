@@ -1,10 +1,9 @@
 import { store } from '../store.js';
-import { triggerHaptic, getInitials, escapeHTML } from '../utils.js';
+import { triggerHaptic, escapeHTML, getAvatarHtml, openModal, closeAllModals } from '../utils.js';
 
 let activeListId = 'atividades';
-let draggedItemIndex = null; // Guarda o índice de quem está sendo arrastado
+let draggedItemIndex = null;
 
-// Rotaciona a prioridade: null -> 'urgent' -> 'casual' -> null
 const togglePriority = (current) => {
     if (!current || current === 'none') return 'urgent';
     if (current === 'urgent') return 'casual';
@@ -18,11 +17,19 @@ export const renderLists = () => {
 
     const currentList = store.lists.find(l => l.id === activeListId) || store.lists[0];
     if(document.getElementById('active-list-header-title')) document.getElementById('active-list-header-title').textContent = currentList.name;
+    
+    // Atualiza os labels dos selects dinamicamente
+    if (store.profile) {
+        const updateSelectNames = (prefix) => {
+            const optP1 = document.getElementById(`opt-${prefix}-p1`);
+            const optP2 = document.getElementById(`opt-${prefix}-p2`);
+            if (optP1) optP1.textContent = store.profile.p1;
+            if (optP2) optP2.textContent = store.profile.p2;
+        };
+        updateSelectNames('owner');
+        updateSelectNames('edit-task');
+    }
 
-    const p1Init = store.profile ? getInitials(store.profile.p1) : 'IS';
-    const p2Init = store.profile ? getInitials(store.profile.p2) : 'VO';
-
-    // 1. Renderiza as Abas Superiores
     tabsContainer.innerHTML = '';
     store.lists.forEach(list => {
         const btn = document.createElement('button');
@@ -36,237 +43,117 @@ export const renderLists = () => {
     btnAddList.className = 'tab-pill outline text-primary';
     btnAddList.innerHTML = '<i class="ph ph-plus"></i>';
     btnAddList.addEventListener('click', () => {
-        triggerHaptic(15);
         const listName = prompt('Nome da nova lista:');
         if (listName?.trim()) {
             const newList = { id: 'list_' + Date.now(), name: listName.trim(), items: [] };
             store.setLists([...store.lists, newList]);
-            activeListId = newList.id;
-            renderLists();
+            activeListId = newList.id; renderLists();
         }
     });
     tabsContainer.appendChild(btnAddList);
 
-    // 2. Renderiza os Itens
     taskContainer.innerHTML = '';
     const pendingItems = currentList.items.filter(i => !i.completed);
-    if(document.getElementById('lists-section-title')) document.getElementById('lists-section-title').textContent = `PENDENTES (${pendingItems.length})`;
+    document.getElementById('lists-section-title').textContent = `PENDENTES (${pendingItems.length})`;
 
     if (currentList.items.length === 0) {
-        taskContainer.innerHTML = `<li style="text-align:center; padding: 24px 0; color: var(--text-muted); font-size: 0.88rem;">Nenhum item nesta lista. Adicione um abaixo!</li>`;
+        taskContainer.innerHTML = `<li style="text-align:center; padding: 24px 0; color: var(--text-muted); font-size: 0.88rem;">Nenhum item nesta lista.</li>`;
     } else {
         currentList.items.forEach((item, index) => {
-            let displayOwner = item.owner;
-            if (item.owner === 'VO') displayOwner = p2Init;
-            if (item.owner === 'IS') displayOwner = p1Init;
-            let badgeClass = (item.owner === 'VO' || item.owner === p2Init) ? 'bg-muted' : '';
-            if (item.owner === 'Casal') { badgeClass = 'bg-casal'; displayOwner = 'NÓS'; }
-
-            const safeText = escapeHTML(item.text);
-            
-            // Configura a UI de Urgência
             let priorityUI = '<i class="ph ph-flag text-muted"></i>';
             let prioritySubtext = '';
-            if (item.priority === 'urgent') {
-                priorityUI = '🔴';
-                prioritySubtext = '<span style="font-size: 0.65rem; color: #E63946; font-weight: 700; margin-top: 2px;">Urgente</span>';
-            } else if (item.priority === 'casual') {
-                priorityUI = '🟢';
-                prioritySubtext = '<span style="font-size: 0.65rem; color: #2A9D8F; font-weight: 700; margin-top: 2px;">Quando der</span>';
-            }
+            if (item.priority === 'urgent') { priorityUI = '🚩'; prioritySubtext = '<span style="font-size: 0.65rem; color: #E63946; font-weight: 700; margin-top: 2px;">Urgente</span>'; }
+            else if (item.priority === 'casual') { priorityUI = '🏖️'; prioritySubtext = '<span style="font-size: 0.65rem; color: #2A9D8F; font-weight: 700; margin-top: 2px;">Quando der</span>'; }
 
             const li = document.createElement('li');
             li.className = `task-item ${item.completed ? 'completed' : ''}`;
-            li.draggable = true; // ATIVA API HTML5
+            li.draggable = true;
             li.dataset.index = index;
-
             li.innerHTML = `
                 <div class="checkbox"><i class="ph-bold ph-check"></i></div>
-                
-                <div class="task-content" style="flex: 1; display: flex; flex-direction: column;" title="Segure e arraste para reordenar">
-                    <span class="task-text">${safeText}</span>
+                <div class="task-content" style="flex: 1; display: flex; flex-direction: column;" title="Arraste para reordenar">
+                    <span class="task-text">${escapeHTML(item.text)}</span>
                     ${prioritySubtext}
                 </div>
+                <button class="btn-priority">${priorityUI}</button>
+                ${getAvatarHtml(item.owner)}
                 
-                <button class="btn-priority" title="Marcar prioridade">${priorityUI}</button>
-                <div class="task-badge ${badgeClass}">${displayOwner}</div>
+                <button class="btn-edit-item" title="Editar Tarefa"><i class="ph ph-pencil-simple"></i></button>
                 <button class="btn-delete-event"><i class="ph ph-trash"></i></button>
             `;
 
-            // --- LISTENERS DE AÇÕES COMUNS ---
-            li.querySelector('.checkbox').addEventListener('click', () => {
-                triggerHaptic(15);
-                item.completed = !item.completed;
-                store.setLists([...store.lists]);
-                renderLists();
-            });
-
-            li.querySelector('.btn-delete-event').addEventListener('click', () => {
-                triggerHaptic(20);
-                currentList.items = currentList.items.filter(i => i.id !== item.id);
-                store.setLists([...store.lists]);
-                renderLists();
-            });
+            li.querySelector('.checkbox').addEventListener('click', () => { triggerHaptic(15); item.completed = !item.completed; store.setLists([...store.lists]); renderLists(); });
+            li.querySelector('.btn-delete-event').addEventListener('click', () => { triggerHaptic(20); currentList.items = currentList.items.filter(i => i.id !== item.id); store.setLists([...store.lists]); renderLists(); });
+            li.querySelector('.btn-priority').addEventListener('click', () => { item.priority = togglePriority(item.priority); store.setLists([...store.lists]); renderLists(); });
             
-            li.querySelector('.btn-priority').addEventListener('click', (e) => {
-                triggerHaptic(15);
-                item.priority = togglePriority(item.priority);
-                store.setLists([...store.lists]);
-                renderLists();
+            // Editar Tarefa (Abre Modal)
+            li.querySelector('.btn-edit-item').addEventListener('click', () => {
+                document.getElementById('edit-task-id').value = item.id;
+                document.getElementById('edit-task-text').value = item.text;
+                document.getElementById('edit-task-owner').value = item.owner || 'Casal';
+                openModal('task-edit-bottom-sheet');
             });
 
-            // --- LISTENERS: DRAG AND DROP HTML5 ---
-            li.addEventListener('dragstart', (e) => {
-                draggedItemIndex = index;
-                e.dataTransfer.effectAllowed = 'move';
-                // Timeout permite que a API nativa gere a "imagem fantasma" antes de escurecer a linha original
-                setTimeout(() => li.classList.add('dragging'), 0);
-                triggerHaptic(10);
-            });
-
-            li.addEventListener('dragover', (e) => {
-                e.preventDefault(); // Obrigatório para permitir o drop
-                e.dataTransfer.dropEffect = 'move';
-                li.classList.add('drag-over');
-            });
-
-            li.addEventListener('dragleave', () => {
-                li.classList.remove('drag-over');
-            });
-
+            // DRAG AND DROP
+            li.addEventListener('dragstart', (e) => { draggedItemIndex = index; setTimeout(() => li.classList.add('dragging'), 0); });
+            li.addEventListener('dragover', (e) => { e.preventDefault(); li.classList.add('drag-over'); });
+            li.addEventListener('dragleave', () => li.classList.remove('drag-over'));
             li.addEventListener('drop', (e) => {
-                e.stopPropagation();
-                li.classList.remove('drag-over');
-                
-                const dropIndex = index;
-                
-                // Se arrastou para um lugar diferente do original
-                if (draggedItemIndex !== null && draggedItemIndex !== dropIndex) {
+                e.stopPropagation(); li.classList.remove('drag-over');
+                if (draggedItemIndex !== null && draggedItemIndex !== index) {
                     const items = currentList.items;
-                    // Remove o item da posição velha e insere na nova
                     const [draggedItem] = items.splice(draggedItemIndex, 1);
-                    items.splice(dropIndex, 0, draggedItem);
-                    
-                    store.setLists([...store.lists]);
-                    triggerHaptic(20);
-                    renderLists();
+                    items.splice(index, 0, draggedItem);
+                    store.setLists([...store.lists]); triggerHaptic(20); renderLists();
                 }
-                return false;
             });
-
-            li.addEventListener('dragend', () => {
-                li.classList.remove('dragging');
-                li.classList.remove('drag-over');
-                draggedItemIndex = null;
-            });
-
+            li.addEventListener('dragend', () => { li.classList.remove('dragging'); li.classList.remove('drag-over'); draggedItemIndex = null; });
+            
             taskContainer.appendChild(li);
         });
     }
-
-    if(document.getElementById('metric-lists-count')) document.getElementById('metric-lists-count').textContent = store.lists.length;
-    if(document.getElementById('metric-pending-count')) document.getElementById('metric-pending-count').textContent = pendingItems.length;
 };
 
 export const initLists = () => {
-    // Lógica do Modal de Opções (renomear, excluir)
-    const btnOptions = document.getElementById('btn-list-options');
-    const overlayList = document.getElementById('list-options-modal-overlay');
-    const sheetList = document.getElementById('list-options-bottom-sheet');
-    const btnCloseOptions = document.getElementById('btn-close-list-options');
-    const btnRename = document.getElementById('btn-rename-list');
-    const btnDelete = document.getElementById('btn-delete-list');
+    document.getElementById('btn-list-options')?.addEventListener('click', () => openModal('list-options-bottom-sheet'));
 
-    const closeOptions = () => {
-        overlayList?.classList.remove('active');
-        sheetList?.classList.remove('active');
-    };
-
-    btnOptions?.addEventListener('click', () => {
+    // Edição da Tarefa Existente
+    document.getElementById('form-edit-task')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const taskId = parseInt(document.getElementById('edit-task-id').value);
         const currentList = store.lists.find(l => l.id === activeListId);
-        if (!currentList) return;
-        document.getElementById('list-options-title').textContent = currentList.name;
-        triggerHaptic(10);
-        overlayList.classList.add('active');
-        sheetList.classList.add('active');
+        const targetTask = currentList?.items.find(i => i.id === taskId);
+        
+        if (targetTask) {
+            targetTask.text = document.getElementById('edit-task-text').value.trim();
+            targetTask.owner = document.getElementById('edit-task-owner').value;
+            store.setLists([...store.lists]);
+            triggerHaptic(20); renderLists(); closeAllModals();
+        }
     });
 
-    btnCloseOptions?.addEventListener('click', closeOptions);
-    overlayList?.addEventListener('click', closeOptions);
-
-    btnRename?.addEventListener('click', () => {
+    // Nova Tarefa (Agora pega o responsável do mini Select)
+    document.getElementById('form-add-task')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const text = document.getElementById('input-task-text').value.trim();
+        const owner = document.getElementById('input-task-owner').value;
+        if (!text) return;
         const currentList = store.lists.find(l => l.id === activeListId);
         if (currentList) {
-            const newName = prompt('Novo nome para a lista:', currentList.name);
-            if (newName && newName.trim()) {
-                currentList.name = newName.trim();
-                store.setLists([...store.lists]);
-                renderLists();
-                triggerHaptic(20);
-            }
+            currentList.items.push({ id: Date.now(), text, completed: false, priority: 'none', owner });
+            store.setLists([...store.lists]);
+            triggerHaptic(20); document.getElementById('input-task-text').value = ''; renderLists();
         }
-        closeOptions();
     });
 
-    btnDelete?.addEventListener('click', () => {
+    document.getElementById('btn-list-archive')?.addEventListener('click', () => {
         const currentList = store.lists.find(l => l.id === activeListId);
         if (currentList) {
-            if (confirm(`Tem certeza que deseja excluir a lista "${currentList.name}"?`)) {
-                let newLists = store.lists.filter(l => l.id !== activeListId);
-                if (newLists.length === 0) {
-                    newLists.push({ id: 'list_' + Date.now(), name: 'Nova Lista', items: [] });
-                }
-                store.setLists(newLists);
-                activeListId = newLists[0].id; 
-                renderLists();
-                triggerHaptic(30);
-            }
+            currentList.items = currentList.items.filter(i => !i.completed);
+            store.setLists([...store.lists]); triggerHaptic(25); renderLists();
         }
-        closeOptions();
     });
-
-    // Lógica de Adicionar Nova Tarefa
-    const formAddTask = document.getElementById('form-add-task');
-    const inputTaskText = document.getElementById('input-task-text');
-    const btnListArchive = document.getElementById('btn-list-archive');
-
-    if (formAddTask) {
-        formAddTask.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const text = inputTaskText.value.trim();
-            if (!text) return;
-            const currentList = store.lists.find(l => l.id === activeListId);
-            if (currentList) {
-                currentList.items.push({ 
-                    id: Date.now(), 
-                    text, 
-                    completed: false, 
-                    priority: 'none', // Nasce sem prioridade por padrão
-                    owner: store.profile ? getInitials(store.profile.p1) : 'IS' 
-                });
-                store.setLists([...store.lists]);
-                triggerHaptic(20);
-                inputTaskText.value = '';
-                renderLists();
-            }
-        });
-    }
-
-    if (btnListArchive) {
-        btnListArchive.addEventListener('click', () => {
-            const currentList = store.lists.find(l => l.id === activeListId);
-            if (currentList) {
-                const initialCount = currentList.items.length;
-                currentList.items = currentList.items.filter(i => !i.completed);
-                if (currentList.items.length < initialCount) {
-                    store.setLists([...store.lists]);
-                    triggerHaptic(25);
-                    renderLists();
-                }
-            }
-        });
-    }
-
+    
     if (store.lists.length > 0) activeListId = store.lists[0].id;
     renderLists();
 };

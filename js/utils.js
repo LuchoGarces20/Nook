@@ -1,3 +1,5 @@
+import { store } from './store.js';
+
 export const triggerHaptic = (ms = 15) => {
     if (window.navigator && window.navigator.vibrate) {
         window.navigator.vibrate(ms);
@@ -22,7 +24,6 @@ export const getLocalDateString = (d) => {
     return `${year}-${month}-${day}`;
 };
 
-// Sanitizador para evitar vulnerabilidades de XSS
 export const escapeHTML = (str) => {
     if (typeof str !== 'string') return str;
     return str.replace(/[&<>'"]/g, 
@@ -34,4 +35,45 @@ export const escapeHTML = (str) => {
             '"': '&quot;'
         }[tag])
     );
+};
+
+// Função Universal para Renderizar Avatares e Emojis em vez de Siglas
+export const getAvatarHtml = (ownerId, size = '28px') => {
+    const profile = store.profile || {};
+    
+    // Tratamento para "Nós / Casal"
+    if (ownerId === 'Casal') {
+        return `<div class="task-badge bg-casal" style="width: ${size}; height: ${size}; font-size: 0.65rem;">NÓS</div>`;
+    }
+
+    const isP1 = ownerId === 'IS' || ownerId === 'p1' || ownerId === profile.p1;
+    const name = isP1 ? (profile.p1 || 'P1') : (profile.p2 || 'P2');
+    const avatarData = isP1 ? profile.avatarP1 : profile.avatarP2;
+    const initials = getInitials(name);
+    const baseClass = isP1 ? 'my-avatar' : 'partner-avatar';
+
+    // 1. Se for uma FOTO enviada pelo usuário
+    if (avatarData && avatarData.startsWith('data:image')) {
+        return `<div class="task-badge has-photo ${baseClass}" style="width: ${size}; height: ${size}; background-image: url('${avatarData}');"></div>`;
+    } 
+    // 2. Se for um EMOJI escolhido
+    else if (avatarData) {
+        return `<div class="task-badge ${baseClass}" style="width: ${size}; height: ${size}; font-size: 1.1rem; border: none; background: transparent;">${avatarData}</div>`;
+    } 
+    // 3. Se não tiver nada, mostra Iniciais
+    else {
+        return `<div class="task-badge ${baseClass}" style="width: ${size}; height: ${size}; font-size: 0.75rem;">${initials}</div>`;
+    }
+};
+
+// Gerenciador Universal de Modais
+export const openModal = (modalId) => {
+    triggerHaptic(10);
+    document.getElementById('general-overlay')?.classList.add('active');
+    document.getElementById(modalId)?.classList.add('active');
+};
+
+export const closeAllModals = () => {
+    document.getElementById('general-overlay')?.classList.remove('active');
+    document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('active'));
 };

@@ -31,6 +31,28 @@ export const renderGoals = () => {
             const safeIcon = escapeHTML(goal.icon);
             const safeUnit = escapeHTML(goal.unit || 'vezes');
             
+            let deadlineText = '';
+            if (goal.type === 'financial' && goal.deadline && goal.current < goal.target) {
+                const today = new Date();
+                const [y, m, d] = goal.deadline.split('-');
+                const deadlineDate = new Date(y, m - 1, d);
+                const diffDays = Math.ceil((deadlineDate - today) / (1000 * 60 * 60 * 24));
+                const remainingMoney = goal.target - goal.current;
+
+                if (diffDays > 0) {
+                    const diffMonths = diffDays / 30.44; // Média de dias no mês
+                    const suggestion = diffMonths >= 1
+                        ? `${formatCurrency(remainingMoney / diffMonths)}/mês`
+                        : `${formatCurrency(remainingMoney / (diffDays / 7 || 1))}/semana`;
+
+                    deadlineText = `<div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; padding: 8px 12px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px dashed var(--border-color);">
+                        ⏳ Guardem aprox. <strong>${suggestion}</strong> para bater a meta no prazo.
+                    </div>`;
+                } else {
+                    deadlineText = `<div style="font-size: 0.75rem; color: #E63946; margin-top: 8px;">⏳ Prazo esgotado!</div>`;
+                }
+            }
+
             const card = document.createElement('div');
             card.className = 'dash-card';
             card.style.cssText = 'flex-direction: column; align-items: flex-start; gap: 12px;';
@@ -59,6 +81,7 @@ export const renderGoals = () => {
                         <button class="btn-delete-event btn-delete-goal"><i class="ph ph-trash"></i></button>
                     </div>
                 </div>
+                ${deadlineText}
             `;
 
             // CLIQUE NO HEADER: ABRIR HISTÓRICO
@@ -177,6 +200,7 @@ export const initGoals = () => {
             target: isNaN(targetValue) || targetValue <= 0 ? 1 : targetValue,
             current: type === 'financial' ? parseFloat(document.getElementById('goal-initial-fin').value) || 0 : 0,
             unit: type === 'habit' ? document.getElementById('goal-unit-habit').value : null,
+            deadline: type === 'financial' ? document.getElementById('goal-deadline-fin').value : null,
             history: [] // Inicializa com histórico vazio
         };
 
