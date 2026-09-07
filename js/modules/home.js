@@ -1,13 +1,14 @@
+// js/modules/home.js
 import { store } from '../store.js';
 import { getLocalDateString, escapeHTML, triggerHaptic, getAvatarHtml, openModal, closeAllModals, formatCurrency } from '../utils.js';
 
 const MOODS = [
     { id: 'energia', icon: '⚡', label: 'Cheio(a) de energia' },
-    { id: 'cansado', icon: '🥱', label: 'Cansado(a)' },
-    { id: 'lanche', icon: '🍔', label: 'Querendo lanche' },
+    { id: 'cansado', icon: '😴', label: 'Cansado(a)' },
+    { id: 'lanche', icon: '🍕', label: 'Querendo lanche' },
     { id: 'apaixonado', icon: '🥰', label: 'Apaixonado(a)' },
-    { id: 'estresse', icon: '😤', label: 'Estressado(a)' },
-    { id: 'feliz', icon: '✨', label: 'Feliz da vida' }
+    { id: 'estresse', icon: '🤯', label: 'Estressado(a)' },
+    { id: 'feliz', icon: '😊', label: 'Feliz da vida' }
 ];
 
 const PRESET_COVERS = [
@@ -21,25 +22,28 @@ let targetPerson = 'p1';
 
 export const renderHome = () => {
     if (!store.profile) return;
-     
+
+    // Capa Hero
     const heroEl = document.getElementById('main-hero');
     if (heroEl) {
         const cover = store.profile.heroCover || PRESET_COVERS[0];
         heroEl.style.backgroundImage = `url(${cover})`;
     }
 
+    // Saudação
     const greetingElement = document.getElementById('dynamic-greeting');
     if (greetingElement) {
         const hour = new Date().getHours();
         const day = new Date().getDay();
         let text = "Boa noite! Descansem";
-        if (day === 5 && hour > 17) text = `Sextou, casal!`;
-        else if (day === 0 && hour < 12) text = "Domingo de preguiça!";
-        else if (hour >= 5 && hour < 12) text = "Bom dia, amores!";
-        else if (hour >= 12 && hour < 18) text = "Boa tarde!";
+        if (day === 5 && hour > 17) text = `Sextou, casal! 🎉`;
+        else if (day === 0 && hour < 12) text = "Domingo de preguiça! ☕";
+        else if (hour >= 5 && hour < 12) text = "Bom dia, amores! ☀️";
+        else if (hour >= 12 && hour < 18) text = "Boa tarde! 👋";
         greetingElement.textContent = text;
     }
 
+    // Dias juntos
     const daysElement = document.getElementById('days-together');
     if (daysElement && store.profile.startDate) {
         const [year, month, day] = store.profile.startDate.split('-').map(Number);
@@ -48,6 +52,7 @@ export const renderHome = () => {
         daysElement.textContent = diffDays;
     }
 
+    // Moods
     const todayStr = getLocalDateString(new Date());
     if (!store.moods || store.moods.date !== todayStr) {
         store.setMoods({ p1: null, p2: null, date: todayStr });
@@ -60,7 +65,7 @@ export const renderHome = () => {
         document.getElementById(`mood-avatar-container-${personId}`)?.replaceChildren(
             Object.assign(document.createElement('div'), { innerHTML: getAvatarHtml(personId, '38px') }).firstChild
         );
-                 
+
         const moodData = store.moods[personId] ? MOODS.find(m => m.id === store.moods[personId]) : null;
         if (moodData) {
             document.getElementById(`mood-icon-${personId}`).textContent = moodData.icon;
@@ -71,11 +76,10 @@ export const renderHome = () => {
     renderMoodAvatar('p1');
     renderMoodAvatar('p2');
 
-    // Resumo de Tarefas
+    // Resumos
     const pendingCount = (store.lists || []).reduce((acc, list) => acc + list.items.filter(i => !i.completed).length, 0);
     document.getElementById('home-tasks-desc').textContent = pendingCount === 0 ? "Tudo em dia!" : `${pendingCount} item(s)`;
 
-    // Resumo de Finanças (Correção do "Calculando...")
     const pendingExpenses = (store.expenses || []).filter(e => !e.completed);
     const totalPendingAmount = pendingExpenses.reduce((acc, exp) => acc + (exp.amount || 0), 0);
     const finDescEl = document.getElementById('home-fin-desc');
@@ -83,12 +87,13 @@ export const renderHome = () => {
         finDescEl.textContent = pendingExpenses.length === 0 ? "Tudo pago!" : `${formatCurrency(totalPendingAmount)} (${pendingExpenses.length} pendente)`;
     }
 
+    // Agenda de Hoje
     const agendaList = document.getElementById('home-agenda-list');
     if (agendaList) {
         agendaList.innerHTML = '';
         const todayEvents = store.agenda.filter(ev => ev.date === todayStr).sort((a, b) => a.time.localeCompare(b.time));
         if (todayEvents.length === 0) {
-            agendaList.innerHTML = `<li style="text-align:center; padding: 32px 0; color: var(--text-muted); font-size: 0.9rem; border: none;"><i class="ph ph-coffee" style="font-size: 2.2rem; margin-bottom: 8px; display: block; color: rgba(224, 122, 95, 0.5)"></i>Dia livre para vocês curtirem!</li>`;
+            agendaList.innerHTML = `<li style="text-align:center; padding: 20px 0; color: var(--text-muted); font-size: 0.88rem; border: none;"><i class="ph ph-coffee" style="font-size: 2rem; margin-bottom: 6px; display: block; color: rgba(224, 122, 95, 0.5)"></i>Dia livre para vocês curtirem!</li>`;
         } else {
             todayEvents.forEach(ev => {
                 const li = document.createElement('li');
@@ -104,10 +109,88 @@ export const renderHome = () => {
             });
         }
     }
+
+    // ==========================================
+    // RENDERIZAR CÁPSULA DO TEMPO & MEMÓRIAS
+    // ==========================================
+    renderMemoriesSection();
+};
+
+const renderMemoriesSection = () => {
+    const capsuleContainer = document.getElementById('home-capsule-card');
+    const memoriesGrid = document.getElementById('home-memories-grid');
+    if (!memoriesGrid) return;
+
+    memoriesGrid.innerHTML = '';
+    const memories = store.memories || [];
+
+    // 1. LÓGICA DA CÁPSULA DO TEMPO ("Neste dia no passado")
+    const today = new Date();
+    const todayMonthDay = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    // Busca memória do mesmo dia/mês em anos anteriores
+    const capsuleMemory = memories.find(m => {
+        if (!m.date) return false;
+        const [y, mm, dd] = m.date.split('-');
+        return `${mm}-${dd}` === todayMonthDay && Number(y) < today.getFullYear();
+    });
+
+    if (capsuleContainer) {
+        if (capsuleMemory) {
+            capsuleContainer.style.display = 'flex';
+            const [y] = capsuleMemory.date.split('-');
+            const diffAnos = today.getFullYear() - Number(y);
+            document.getElementById('capsule-title').textContent = `Há ${diffAnos} ano${diffAnos > 1 ? 's' : ''} atrás...`;
+            document.getElementById('capsule-text').textContent = capsuleMemory.title;
+            if (capsuleMemory.photo) {
+                document.getElementById('capsule-bg').style.backgroundImage = `url('${capsuleMemory.photo}')`;
+            }
+        } else {
+            capsuleContainer.style.display = 'none';
+        }
+    }
+
+    // 2. RENDERIZAR FEED DA LINHA DO TEMPO
+    if (memories.length === 0) {
+        memoriesGrid.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 24px 12px; background: var(--card-bg); border-radius: var(--radius-lg); border: 1px dashed var(--border-color); color: var(--text-muted); font-size: 0.85rem;">
+                <i class="ph ph-heart-break" style="font-size: 2rem; margin-bottom: 6px; color: var(--primary); display: block;"></i>
+                Nenhuma memória registrada ainda.<br>Clique em "+ Nova Memória" para guardar um momento!
+            </div>
+        `;
+    } else {
+        const sortedMemories = [...memories].sort((a, b) => b.date.localeCompare(a.date));
+        sortedMemories.forEach(mem => {
+            const [y, m, d] = mem.date.split('-');
+            const card = document.createElement('div');
+            card.className = 'memory-card';
+            card.innerHTML = `
+                <div class="memory-photo" style="background-image: url('${mem.photo || 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?q=80&w=400'}')">
+                    <span class="memory-date-badge">${d}/${m}/${y}</span>
+                    <button class="btn-delete-memory" title="Apagar memória"><i class="ph ph-trash"></i></button>
+                </div>
+                <div class="memory-info">
+                    <strong>${escapeHTML(mem.title)}</strong>
+                    ${mem.note ? `<p>${escapeHTML(mem.note)}</p>` : ''}
+                </div>
+            `;
+
+            card.querySelector('.btn-delete-memory').addEventListener('click', (e) => {
+                e.stopPropagation();
+                triggerHaptic(20);
+                if (confirm('Deseja realmente apagar esta memória?')) {
+                    store.setMemories(store.memories.filter(m => m.id !== mem.id));
+                    renderHome();
+                }
+            });
+
+            memoriesGrid.appendChild(card);
+        });
+    }
 };
 
 export const initHome = () => {
-    renderHome();          
+    renderHome();
 
     document.getElementById('general-overlay')?.addEventListener('click', () => closeAllModals(false));
     document.querySelectorAll('.btn-close-modal').forEach(btn => btn.addEventListener('click', () => closeAllModals(false)));
@@ -119,19 +202,22 @@ export const initHome = () => {
         document.querySelector('.nav-item[data-target="view-finances"]')?.click();
     });
 
+    // Trocar Foto da Hero
     document.getElementById('btn-edit-hero')?.addEventListener('click', () => {
         const grid = document.getElementById('hero-gallery-grid');
-        grid.innerHTML = '';
-        PRESET_COVERS.forEach(url => {
-            const btn = document.createElement('div');
-            btn.className = 'hero-preset';
-            btn.style.backgroundImage = `url(${url})`;
-            btn.addEventListener('click', () => {
-                store.setProfile({ ...store.profile, heroCover: url });
-                triggerHaptic(20); renderHome(); closeAllModals(true);
+        if (grid) {
+            grid.innerHTML = '';
+            PRESET_COVERS.forEach(url => {
+                const btn = document.createElement('div');
+                btn.className = 'hero-preset';
+                btn.style.backgroundImage = `url(${url})`;
+                btn.addEventListener('click', () => {
+                    store.setProfile({ ...store.profile, heroCover: url });
+                    triggerHaptic(20); renderHome(); closeAllModals(true);
+                });
+                grid.appendChild(btn);
             });
-            grid.appendChild(btn);
-        });
+        }
         openModal('hero-bottom-sheet');
     });
 
@@ -148,10 +234,11 @@ export const initHome = () => {
         }
     });
 
+    // Mood Tracker
     const optionsContainer = document.getElementById('mood-options-container');
     document.getElementById('btn-mood-p1')?.addEventListener('click', () => { targetPerson = 'p1'; openModal('mood-bottom-sheet'); });
     document.getElementById('btn-mood-p2')?.addEventListener('click', () => { targetPerson = 'p2'; openModal('mood-bottom-sheet'); });
-    
+
     if (optionsContainer) {
         optionsContainer.innerHTML = '';
         MOODS.forEach(mood => {
@@ -167,4 +254,58 @@ export const initHome = () => {
             optionsContainer.appendChild(btn);
         });
     }
+
+    // ==========================================
+    // MODAL & CADASTRO DE NOVA MEMÓRIA
+    // ==========================================
+    let memoryPhotoBase64 = null;
+
+    document.getElementById('btn-open-memory-modal')?.addEventListener('click', () => {
+        document.getElementById('form-add-memory')?.reset();
+        document.getElementById('memory-photo-preview').style.backgroundImage = 'none';
+        memoryPhotoBase64 = null;
+        document.getElementById('memory-date').value = getLocalDateString(new Date());
+        openModal('memory-bottom-sheet');
+    });
+
+    document.getElementById('btn-upload-memory-photo')?.addEventListener('click', () => {
+        document.getElementById('file-memory-photo').click();
+    });
+
+    document.getElementById('file-memory-photo')?.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                memoryPhotoBase64 = ev.target.result;
+                const prev = document.getElementById('memory-photo-preview');
+                prev.style.backgroundImage = `url('${memoryPhotoBase64}')`;
+                prev.style.display = 'block';
+                triggerHaptic(20);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    document.getElementById('form-add-memory')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const title = document.getElementById('memory-title').value.trim();
+        const date = document.getElementById('memory-date').value;
+        const note = document.getElementById('memory-note').value.trim();
+
+        if (!title || !date) return;
+
+        const newMemory = {
+            id: Date.now(),
+            title,
+            date,
+            note,
+            photo: memoryPhotoBase64
+        };
+
+        store.setMemories([...store.memories, newMemory]);
+        triggerHaptic(30);
+        renderHome();
+        closeAllModals(true);
+    });
 };

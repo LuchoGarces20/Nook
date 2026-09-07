@@ -30,23 +30,60 @@ export const renderGoals = () => {
             const safeIcon = escapeHTML(goal.icon);
             const safeUnit = escapeHTML(goal.unit || 'vezes');
             
+            // 1. DATA ALVO & SUGESTÃO DE ECONOMIA AUTOMÁTICA
             let deadlineText = '';
             if (goal.type === 'financial' && goal.deadline && goal.current < goal.target) {
                 const today = new Date();
-                const [y, m, d] = goal.deadline.split('-');
+                today.setHours(0, 0, 0, 0);
+                const [y, m, d] = goal.deadline.split('-').map(Number);
                 const deadlineDate = new Date(y, m - 1, d);
-                const diffDays = Math.ceil((deadlineDate - today) / (1000 * 60 * 60 * 24));
+                deadlineDate.setHours(0, 0, 0, 0);
+                
+                const diffTime = deadlineDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                 const remainingMoney = goal.target - goal.current;
+                
                 if (diffDays > 0) {
-                    const diffMonths = diffDays / 30.44;
-                    const suggestion = diffMonths >= 1
-                        ? `${formatCurrency(remainingMoney / diffMonths)}/mês`
-                        : `${formatCurrency(remainingMoney / (diffDays / 7 || 1))}/semana`;
-                    deadlineText = `<div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; padding: 8px 12px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px dashed var(--border-color);">Guardem aprox. <strong>${suggestion}</strong> para bater a meta no prazo.</div>`;
+                    const months = Math.ceil(diffDays / 30.44);
+                    if (diffDays >= 30) {
+                        const monthlyRate = remainingMoney / (diffDays / 30.44);
+                        deadlineText = `
+                            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 8px; padding: 10px 12px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px dashed var(--border-color); width: 100%;">
+                                ⏳ <strong>Faltam ${months} ${months === 1 ? 'mês' : 'meses'}.</strong> Vocês precisam guardar <strong>${formatCurrency(monthlyRate)}/mês</strong> para chegar lá.
+                            </div>
+                        `;
+                    } else {
+                        const weeklyRate = remainingMoney / (diffDays / 7 || 1);
+                        deadlineText = `
+                            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 8px; padding: 10px 12px; background: var(--bg-color); border-radius: var(--radius-sm); border: 1px dashed var(--border-color); width: 100%;">
+                                ⏳ <strong>Faltam ${diffDays} ${diffDays === 1 ? 'dia' : 'dias'}.</strong> Vocês precisam guardar <strong>${formatCurrency(weeklyRate)}/semana</strong> para chegar lá.
+                            </div>
+                        `;
+                    }
+                } else if (diffDays === 0) {
+                    deadlineText = `
+                        <div style="font-size: 0.78rem; color: var(--primary); margin-top: 8px; padding: 8px 12px; background: var(--primary-light); border-radius: var(--radius-sm); width: 100%;">
+                            ⚠️ O prazo final é <strong>hoje</strong>! Faltam ${formatCurrency(remainingMoney)}.
+                        </div>
+                    `;
                 } else {
-                    deadlineText = `<div style="font-size: 0.75rem; color: #E63946; margin-top: 8px;">Prazo esgotado!</div>`;
+                    deadlineText = `
+                        <div style="font-size: 0.78rem; color: #E63946; margin-top: 8px; padding: 8px 12px; background: rgba(230, 57, 70, 0.1); border-radius: var(--radius-sm); width: 100%;">
+                            ⏰ Prazo esgotado!
+                        </div>
+                    `;
                 }
             }
+
+            // 2. VISUALIZAÇÃO DOS MARCOS INTERMEDIÁRIOS (25%, 50%, 75%, 100%)
+            const milestonesHTML = `
+                <div class="milestones-row" style="display: flex; justify-content: space-between; width: 100%; font-size: 0.68rem; margin-top: 4px; color: var(--text-muted);">
+                    <span style="${percent >= 25 ? 'color: var(--primary); font-weight: 700;' : ''}">${percent >= 25 ? '✓ 25%' : '25%'}</span>
+                    <span style="${percent >= 50 ? 'color: var(--primary); font-weight: 700;' : ''}">${percent >= 50 ? '✓ 50%' : '50%'}</span>
+                    <span style="${percent >= 75 ? 'color: var(--primary); font-weight: 700;' : ''}">${percent >= 75 ? '✓ 75%' : '75%'}</span>
+                    <span style="${percent >= 100 ? 'color: var(--primary); font-weight: 700;' : ''}">${percent >= 100 ? '🎉 100%' : '100%'}</span>
+                </div>
+            `;
 
             const card = document.createElement('div');
             card.className = 'dash-card';
@@ -68,7 +105,8 @@ export const renderGoals = () => {
                         <div class="task-badge ${badgeClass}" style="width: 24px; height: 24px; font-size: 0.65rem;">${displayOwner}</div>
                     </div>
                 </div>
-                <div class="progress-bar"><div class="progress-fill" style="width: ${percent}%;"></div></div>
+                <div class="progress-bar" style="width: 100%;"><div class="progress-fill" style="width: ${percent}%;"></div></div>
+                ${milestonesHTML}
                 <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-top: 2px;">
                     <span class="dash-value">${textDetail}</span>
                     <div style="display: flex; align-items: center; gap: 4px;">
@@ -91,7 +129,10 @@ export const renderGoals = () => {
             card.querySelector('.btn-action-habit')?.addEventListener('click', () => {
                 if (goal.current < goal.target) {
                     const prev = goal.current;
+                    const prevPercent = goal.target > 0 ? Math.floor((prev / goal.target) * 100) : 0;
+                    
                     goal.current += 1;
+                    const newPercent = goal.target > 0 ? Math.floor((goal.current / goal.target) * 100) : 0;
                     
                     if (!goal.history) goal.history = [];
                     goal.history.push({
@@ -101,9 +142,18 @@ export const renderGoals = () => {
                     });
                     store.setGoals([...store.goals]);
                     
-                    if (goal.current >= goal.target && prev < goal.target) {
-                        triggerHaptic([200, 100, 200, 100, 200]);
-                        if(window.confetti) confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#E07A5F', '#DB2777', '#FDF2F8'] });
+                    // Trigger de Marcos em Hábitos
+                    const milestones = [25, 50, 75, 100];
+                    const crossed = milestones.slice().reverse().find(m => prevPercent < m && newPercent >= m);
+                    
+                    if (crossed) {
+                        if (crossed === 100) {
+                            triggerHaptic([200, 100, 200, 100, 200]);
+                            if (window.confetti) confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#E07A5F', '#DB2777', '#FDF2F8'] });
+                        } else {
+                            triggerHaptic([100, 50, 100]);
+                            if (window.confetti) confetti({ particleCount: 60, spread: 50, origin: { y: 0.7 }, colors: ['#E07A5F', '#2A9D8F', '#E9C46A'] });
+                        }
                     } else {
                         triggerHaptic(20);
                     }
@@ -121,8 +171,8 @@ export const renderGoals = () => {
         });
     }
 
-    if(document.getElementById('metric-goals-saved')) document.getElementById('metric-goals-saved').textContent = formatCurrency(totalSaved);
-    if(document.getElementById('metric-goals-count')) document.getElementById('metric-goals-count').textContent = store.goals.length;
+    if (document.getElementById('metric-goals-saved')) document.getElementById('metric-goals-saved').textContent = formatCurrency(totalSaved);
+    if (document.getElementById('metric-goals-count')) document.getElementById('metric-goals-count').textContent = store.goals.length;
 };
 
 const openHistoryModal = (goal) => {
@@ -166,7 +216,8 @@ export const initGoals = () => {
         const targetValue = type === 'financial' ? parseFloat(document.getElementById('goal-target-fin').value) : parseInt(document.getElementById('goal-target-habit').value);
         
         const newGoal = {
-            id: Date.now(), type,
+            id: Date.now(), 
+            type,
             title: document.getElementById('goal-title').value,
             icon: document.getElementById('goal-icon').value || '🎯',
             owner: document.getElementById('goal-owner').value,
@@ -184,9 +235,10 @@ export const initGoals = () => {
                 amount: newGoal.current
             });
         }
+
         store.setGoals([...store.goals, newGoal]);
-        triggerHaptic(30); 
-        renderGoals(); 
+        triggerHaptic(30);
+        renderGoals();
         closeAllModals();
         formGoal?.reset();
     });
@@ -201,7 +253,10 @@ export const initGoals = () => {
         
         if (targetGoal && !isNaN(amount) && amount > 0) {
             const prev = targetGoal.current;
+            const prevPercent = targetGoal.target > 0 ? Math.floor((prev / targetGoal.target) * 100) : 0;
+            
             targetGoal.current += amount;
+            const newPercent = targetGoal.target > 0 ? Math.floor((targetGoal.current / targetGoal.target) * 100) : 0;
             
             if (!targetGoal.history) targetGoal.history = [];
             targetGoal.history.push({
@@ -209,11 +264,22 @@ export const initGoals = () => {
                 owner: store.profile ? store.profile.p1 : 'IS',
                 amount: amount
             });
+            
             store.setGoals([...store.goals]);
             
-            if (targetGoal.current >= targetGoal.target && prev < targetGoal.target) {
-                triggerHaptic([200, 100, 200, 100, 200]);
-                if(window.confetti) confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#E07A5F', '#DB2777', '#FDF2F8'] });
+            // DISPARO DE MARCOS INTERMEDIÁRIOS (25%, 50%, 75%, 100%)
+            const milestones = [25, 50, 75, 100];
+            const crossed = milestones.slice().reverse().find(m => prevPercent < m && newPercent >= m);
+            
+            if (crossed) {
+                if (crossed === 100) {
+                    triggerHaptic([200, 100, 200, 100, 200]);
+                    if (window.confetti) confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#E07A5F', '#DB2777', '#FDF2F8'] });
+                } else {
+                    // Micro-confete intermediário (25%, 50%, 75%)
+                    triggerHaptic([100, 50, 100]);
+                    if (window.confetti) confetti({ particleCount: 60, spread: 50, origin: { y: 0.7 }, colors: ['#E07A5F', '#2A9D8F', '#E9C46A'] });
+                }
             } else {
                 triggerHaptic(30);
             }

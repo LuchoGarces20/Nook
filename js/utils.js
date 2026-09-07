@@ -88,3 +88,46 @@ export const closeAllModals = (force = false) => {
     document.getElementById('general-overlay')?.classList.remove('active');
     document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('active'));
 };
+
+export const enableDesktopScroll = (container) => {
+    if (!container || container.dataset.desktopScrollEnabled) return;
+    container.dataset.desktopScrollEnabled = "true";
+
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+
+    // 1. Clicar e Arrastar (Mouse Drag)
+    container.addEventListener('mousedown', (e) => {
+        isDown = true;
+        container.classList.add('dragging-desktop');
+        startX = e.pageX - container.offsetLeft;
+        scrollLeft = container.scrollLeft;
+    });
+
+    container.addEventListener('mouseleave', () => {
+        isDown = false;
+        container.classList.remove('dragging-desktop');
+    });
+
+    container.addEventListener('mouseup', () => {
+        isDown = false;
+        container.classList.remove('dragging-desktop');
+    });
+
+    container.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - container.offsetLeft;
+        const walk = (x - startX) * 1.8; // Velocidade do deslize
+        container.scrollLeft = scrollLeft - walk;
+    });
+
+    // 2. Rodinha do Mouse (Converte Scroll Vertical em Horizontal)
+    container.addEventListener('wheel', (e) => {
+        if (e.deltaY !== 0) {
+            e.preventDefault();
+            container.scrollLeft += e.deltaY;
+        }
+    }, { passive: false });
+};

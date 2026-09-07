@@ -1,4 +1,4 @@
-// Centraliza todos os dados do app e salva automaticamente no LocalStorage
+// js/store.js
 const PREFIX = 'nook_';
 
 const load = (key, defaultData) => {
@@ -20,15 +20,27 @@ const save = (key, data) => {
 
 export const store = {
     profile: load('profile', null),
+    theme: load('theme', 'system'),
     finances: load('finances', { model: '50/50', incomeIS: '', incomeVO: '', focus: 'acerto', configured: false }),
-    expenses: load('expenses', []), // Novo banco de dados para contas
+    expenses: load('expenses', []),
     lists: load('lists', [
-        { id: 'atividades', name: 'Atividades', items: [] },
-        { id: 'mercado', name: 'Mercado', items: [] }
+        { id: 'atividades', name: 'Atividades', type: 'standard', items: [] },
+        { id: 'mercado', name: 'Mercado', type: 'standard', items: [] },
+        { id: 'filmes', name: '🎬 O que Assistir?', type: 'decision', items: [
+            { id: 1, text: 'O Poderoso Chefão', completed: false, owner: 'Casal' },
+            { id: 2, text: 'Interestelar', completed: false, owner: 'IS' },
+            { id: 3, text: 'Severance (Série)', completed: false, owner: 'VO' }
+        ] },
+        { id: 'restaurantes', name: '🍕 O que Comer?', type: 'decision', items: [
+            { id: 4, text: 'Japonês / Sushi', completed: false, owner: 'Casal' },
+            { id: 5, text: 'Hambúrguer Artesanal', completed: false, owner: 'IS' },
+            { id: 6, text: 'Pizzaria do Bairro', completed: false, owner: 'VO' }
+        ] }
     ]),
     agenda: load('agenda', []),
     goals: load('goals', []),
     moods: load('moods', { p1: null, p2: null, date: '' }),
+    memories: load('memories', []), // NOVO BANCO DE MEMÓRIAS
 
     setProfile(data) { this.profile = data; save('profile', data); },
     setTheme(data) { this.theme = data; save('theme', data); },
@@ -38,9 +50,10 @@ export const store = {
     setAgenda(data) { this.agenda = data; save('agenda', data); },
     setGoals(data) { this.goals = data; save('goals', data); },
     setMoods(data) { this.moods = data; save('moods', data); },
-    
-    clearProfile() { 
-        this.profile = null; 
-        try { window.localStorage.removeItem(PREFIX + 'profile'); } catch(e){} 
+    setMemories(data) { this.memories = data; save('memories', data); },
+
+    clearProfile() {
+        this.profile = null;
+        try { window.localStorage.removeItem(PREFIX + 'profile'); } catch(e){}
     }
 };

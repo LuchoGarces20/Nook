@@ -1,5 +1,6 @@
+// js/modules/agenda.js
 import { store } from '../store.js';
-import { triggerHaptic, getLocalDateString, getInitials, escapeHTML, openModal, closeAllModals } from '../utils.js';
+import { triggerHaptic, getLocalDateString, getInitials, escapeHTML, openModal, closeAllModals, enableDesktopScroll } from '../utils.js';
 
 let selectedDateStr = getLocalDateString(new Date());
 
@@ -31,6 +32,9 @@ const renderDateScroller = () => {
         });
         scrollerEl.appendChild(bubble);
     }
+
+    // Habilita scroll/arraste no desktop para a roleta de datas
+    enableDesktopScroll(scrollerEl);
 };
 
 const renderAgendaView = () => {

@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Nook - Gestão a Dois</title>
+    <link rel="icon" type="image/svg+xml" href="img/icon.svg">
+    <link rel="icon" type="image/png" sizes="192x192" href="img/icon-192.png">
+    <link rel="apple-touch-icon" href="img/icon-192.png">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#E07A5F">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Nook">
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script>
@@ -108,6 +116,29 @@
                     </div>
                 </div>
             </section>
+        
+                        <!-- CÁPSULA DO TEMPO ("NESTE DIA NO PASSADO") -->
+            <section id="home-capsule-card" class="dash-card" style="display: none; background: linear-gradient(135deg, var(--primary) 0%, #DB2777 100%); color: white; margin-top: 16px; position: relative; overflow: hidden; border: none;">
+                <div id="capsule-bg" style="position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0.25; filter: blur(2px);"></div>
+                <div style="position: relative; z-index: 2; display: flex; flex-direction: column; gap: 4px; width: 100%;">
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
+                        <i class="ph-bold ph-hourglass-high"></i>
+                        <span id="capsule-title">Cápsula do Tempo</span>
+                    </div>
+                    <span id="capsule-text" style="font-size: 1.1rem; font-weight: 700; margin-top: 4px;">Carregando lembrança...</span>
+                </div>
+            </section>
+
+            <!-- SEÇÃO: NOSSA LINHA DO TEMPO / ÁLBUM DE MEMÓRIAS -->
+            <section class="tasks-section" style="margin-top: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h3 class="section-title" style="margin-bottom: 0;">NOSSA LINHA DO TEMPO</h3>
+                    <button id="btn-open-memory-modal" class="btn-today" style="background: var(--primary-light); color: var(--primary);">
+                        <i class="ph ph-plus" style="margin-right: 4px;"></i> Nova Memória
+                    </button>
+                </div>
+                <div id="home-memories-grid" class="memories-grid"></div>
+            </section>
             
             <section class="tasks-section" style="margin-top: 16px;">
                 <h3 class="section-title">RESUMO</h3>
@@ -178,6 +209,22 @@
                     <button type="submit" class="btn-add"><i class="ph ph-arrow-up"></i></button>
                 </div>
             </form>
+
+            <!-- BANNER DO SORTEADOR "DECIDIR POR NÓS!" -->
+<div id="decision-roulette-banner" class="dash-card" style="display: none; background: linear-gradient(135deg, #2A9D8F 0%, #264653 100%); color: white; margin: 16px 0; border: none; align-items: center; justify-content: space-between;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+            🎲
+        </div>
+        <div>
+            <strong id="decision-banner-title" style="display: block; font-size: 0.95rem;">Em dúvida do que escolher?</strong>
+            <span style="font-size: 0.75rem; opacity: 0.9;">Deixe o Nook sortear por vocês hoje!</span>
+        </div>
+    </div>
+    <button id="btn-trigger-roulette" class="btn-today" style="background: #FFFFFF; color: #264653; font-weight: 800; white-space: nowrap;">
+        Decidir por Nós!
+    </button>
+</div>
             
             <section class="tasks-section">
                 <h3 class="section-title" id="lists-section-title">PENDENTES</h3>
@@ -477,8 +524,6 @@
             </div>
         </div>
 
-        <!-- OUTROS MODAIS (Metas, Aporte, Lista Options, Mood, Theme, Emoji) ... -->
-        <!-- Mantenha os seus atuais, ou cole o básico como abaixo: -->
         <!-- MODAL: NOVA META -->
         <div class="bottom-sheet" id="goal-bottom-sheet">
             <div class="sheet-handle"></div>
@@ -534,6 +579,79 @@
             <div class="sheet-handle"></div><div class="sheet-header"><h2 id="goal-history-title">Histórico</h2><button class="btn-icon btn-close-modal"><i class="ph ph-x"></i></button></div>
             <div class="sheet-body"><ul class="task-list" id="goal-history-list" style="max-height: 50vh; overflow-y: auto;"></ul></div>
         </div>
+
+<!-- MODAL: NOVA MEMÓRIA -->
+<div class="bottom-sheet" id="memory-bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+        <h2>Guardar Memória</h2>
+        <button class="btn-icon btn-close-modal"><i class="ph ph-x"></i></button>
+    </div>
+    <form id="form-add-memory" class="sheet-body">
+        <div class="form-group">
+            <label>Título do Momento</label>
+            <input type="text" id="memory-title" class="form-control" placeholder="Ex: Viagem inesquecível pra serra" required>
+        </div>
+        <div class="form-group">
+            <label>Data</label>
+            <input type="date" id="memory-date" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>Foto do Momento</label>
+            <button type="button" id="btn-upload-memory-photo" class="btn-primary" style="background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0;">
+                <i class="ph ph-camera"></i> Escolher Foto
+            </button>
+            <input type="file" id="file-memory-photo" accept="image/*" style="display: none;">
+            <div id="memory-photo-preview" style="width: 100%; height: 140px; border-radius: var(--radius-md); background-size: cover; background-position: center; margin-top: 8px; display: none; border: 1px solid var(--border-color);"></div>
+        </div>
+        <div class="form-group">
+            <label>Nota / História (Opcional)</label>
+            <input type="text" id="memory-note" class="form-control" placeholder="Detalhes de como foi esse dia...">
+        </div>
+        <button type="submit" class="btn-primary">Salvar Memória</button>
+    </form>
+</div>
+
+<!-- MODAL: CRIAR LISTA / MÓDULO DE DECISÃO -->
+<div class="bottom-sheet" id="create-list-bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+        <h2>Nova Lista / Módulo</h2>
+        <button class="btn-icon btn-close-modal"><i class="ph ph-x"></i></button>
+    </div>
+    <form id="form-create-list" class="sheet-body">
+        <div class="form-group">
+            <label>Nome da Lista</label>
+            <input type="text" id="create-list-name" class="form-control" placeholder="Ex: Livros para Ler, Receitas" required>
+        </div>
+        <div class="form-group">
+            <label>Tipo de Funcionalidade</label>
+            <select id="create-list-type" class="form-control">
+                <option value="standard">Lista Comum (Afazeres / Compras)</option>
+                <option value="decision">🎲 Módulo de Decisão Rápida (Com Sorteador)</option>
+            </select>
+        </div>
+        <button type="submit" class="btn-primary">Criar Lista</button>
+    </form>
+</div>
+
+<!-- MODAL: RESULTADO DA ROLETA / SORTEIO -->
+<div class="bottom-sheet" id="roulette-bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+        <h2 id="roulette-modal-title">Decisão Rápida</h2>
+        <button class="btn-icon btn-close-modal"><i class="ph ph-x"></i></button>
+    </div>
+    <div class="sheet-body" style="text-align: center; padding: 20px 0;">
+        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">O Nook escolheu para vocês:</span>
+        <div id="roulette-result-display" style="font-size: 1.6rem; font-weight: 800; color: var(--primary); margin: 20px 0; padding: 20px; background: var(--primary-light); border-radius: var(--radius-lg); border: 2px dashed var(--primary);">
+            ...
+        </div>
+        <button id="btn-accept-decision" class="btn-primary" style="display: none; background: #2A9D8F;">
+            <i class="ph-bold ph-check-circle" style="margin-right: 6px;"></i> Vamos nessa! (Marcar Concluído)
+        </button>
+    </div>
+</div>
 
     </main>
     <script type="module" src="js/app.js"></script>

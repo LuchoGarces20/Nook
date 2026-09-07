@@ -10,10 +10,19 @@ import { initSettings } from './modules/settings.js';
 document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
     initOnboarding();
-    initHome(); // Inicializa a nova tela Home
+    initHome();
     initLists();
     initAgenda();
     initGoals();
     initFinances();
     initSettings();
 });
+
+// Registrar Service Worker para suporte a PWA
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker registrado:', reg.scope))
+            .catch(err => console.warn('Erro ao registrar Service Worker:', err));
+    });
+}
