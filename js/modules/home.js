@@ -64,6 +64,41 @@ export const renderHome = () => {
         }
     }
 
+    const myPersonId = store.getLoggedUser(); 
+    const partnerPersonId = myPersonId === 'p1' ? 'p2' : 'p1';
+
+    const renderMoodAvatar = (slot, personId) => {
+        const moodContainer = document.getElementById(`mood-avatar-container-${slot}`);
+        if (moodContainer) {
+            moodContainer.innerHTML = getAvatarHtml(personId, '38px');
+        }
+
+        const moodData = (store.moods && store.moods[personId]) ? MOODS.find(m => m.id === store.moods[personId]) : null;
+        const iconEl = document.getElementById(`mood-icon-${slot}`);
+        const textEl = document.getElementById(`mood-text-${slot}`);
+
+        if (moodData) {
+            if (iconEl) iconEl.textContent = moodData.icon;
+            if (textEl) {
+                textEl.textContent = moodData.label;
+                textEl.style.cssText = 'color: var(--text-main); font-weight: 600;';
+            }
+        } else {
+            if (iconEl) iconEl.textContent = '❓';
+            if (textEl) {
+                // Se o slot for 'p1' (o card da esquerda), é SEMPRE "Como você está?"
+                if (slot === 'p1') {
+                    textEl.textContent = 'Como você está?';
+                } else {
+                    // No card da direita, pega o nome da outra pessoa
+                    const partnerName = personId === 'p1' ? (store.profile?.p1 || 'Parceiro(a)') : (store.profile?.p2 || 'Parceiro(a)');
+                    textEl.textContent = `Como ${partnerName} está?`;
+                }
+                textEl.style.cssText = 'color: var(--text-muted); font-size: 0.75rem;';
+            }
+        }
+    };
+
     const renderMoodAvatar = (personId) => {
         const moodContainer = document.getElementById(`mood-avatar-container-${personId}`);
         if (moodContainer) {
@@ -261,9 +296,19 @@ export const initHome = () => {
     });
 
     // 4. Mood Tracker
-    const optionsContainer = document.getElementById('mood-options-container');
-    document.getElementById('btn-mood-p1')?.addEventListener('click', () => { targetPerson = 'p1'; openModal('mood-bottom-sheet'); });
-    document.getElementById('btn-mood-p2')?.addEventListener('click', () => { targetPerson = 'p2'; openModal('mood-bottom-sheet'); });
+    // Card da esquerda (Sempre o MEU perfil) -> Abre o modal para definir meu humor
+    document.getElementById('btn-mood-p1')?.addEventListener('click', () => { 
+        targetPerson = store.getLoggedUser(); // Pega se o usuário atual é p1 ou p2
+        openModal('mood-bottom-sheet'); 
+    });
+
+    // Card da direita (Perfil do Parceiro) -> Desativado para alteração
+    document.getElementById('btn-mood-p2')?.addEventListener('click', () => { 
+        // Mostra um aviso sutil de que é apenas leitura
+        triggerHaptic(10);
+        const partnerName = store.getLoggedUser() === 'p1' ? (store.profile?.p2 || 'Seu parceiro') : (store.profile?.p1 || 'Seu parceiro');
+        alert(`Apenas ${partnerName} pode atualizar o próprio humor!`);
+    });
 
     if (optionsContainer) {
         optionsContainer.innerHTML = '';
@@ -344,4 +389,14 @@ export const initHome = () => {
 
     // Renderiza a Home
     renderHome();
+
+    const cardP1 = document.getElementById('btn-mood-p1');
+const cardP2 = document.getElementById('btn-mood-p2');
+
+if (cardP1) cardP1.style.cursor = 'pointer';
+
+if (cardP2) {
+    cardP2.style.cursor = 'default'; // Remove o ponteiro de clique
+    cardP2.style.opacity = '0.9';    // Deixa levemente diferenciado
+}
 };

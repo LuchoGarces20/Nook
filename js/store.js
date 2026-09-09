@@ -6,6 +6,7 @@ export const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
 
 export const store = {
     profile: null,
+    currentUserEmail: null,
     theme: 'system',
     finances: { model: '50/50', incomeIS: '', incomeVO: '', focus: 'acerto', configured: false },
     expenses: [],
@@ -31,6 +32,9 @@ export const store = {
 
     async checkSession() {
         const { data: { session } } = await supabase.auth.getSession();
+        if (session && session.user) {
+            this.currentUserEmail = session.user.email; // Salva o e-mail ativo
+        }
         return session;
     },
 
@@ -52,6 +56,8 @@ export const store = {
                 this.profile = {
                     p1: data.p1_name,
                     p2: data.p2_name,
+                    p1Email: data.p1_email, // Novo campo
+                    p2Email: data.p2_email, // Novo campo
                     startDate: data.start_date,
                     avatarP1: data.avatar_p1,
                     avatarP2: data.avatar_p2,
@@ -69,11 +75,22 @@ export const store = {
             id: '00000000-0000-0000-0000-000000000001',
             p1_name: data.p1,
             p2_name: data.p2,
+            p1_email: data.p1Email, // Salva no Supabase
+            p2_email: data.p2Email, // Salva no Supabase
             start_date: data.startDate,
             avatar_p1: data.avatarP1,
             avatar_p2: data.avatarP2,
             hero_cover: data.heroCover
         });
+    },
+
+    getLoggedUser() {
+        if (!this.profile || !this.currentUserEmail) return 'p1';
+        // Se o email logado bater com o p2, essa pessoa é p2. Caso contrário, é p1.
+        if (this.currentUserEmail.toLowerCase() === (this.profile.p2Email || '').toLowerCase()) {
+            return 'p2';
+        }
+        return 'p1';
     },
 
     async fetchMoods() {
@@ -87,8 +104,10 @@ export const store = {
         }
     },
 
-    async setMoods(data) {
+     async setMoods(data) {
+        // Mantém o estado local atualizado
         this.moods = data;
+        
         try {
             await supabase.from('moods').upsert({
                 id: '00000000-0000-0000-0000-000000000001',
