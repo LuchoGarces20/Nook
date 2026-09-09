@@ -33,7 +33,7 @@ export const store = {
     async checkSession() {
         const { data: { session } } = await supabase.auth.getSession();
         if (session && session.user) {
-            this.currentUserEmail = session.user.email; // Salva o e-mail ativo
+            this.currentUserEmail = session.user.email;
         }
         return session;
     },
@@ -41,6 +41,9 @@ export const store = {
     async login(email, password) {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        if (data && data.user) {
+            this.currentUserEmail = data.user.email;
+        }
         return data;
     },
 
@@ -56,13 +59,41 @@ export const store = {
                 this.profile = {
                     p1: data.p1_name,
                     p2: data.p2_name,
-                    p1Email: data.p1_email, // Novo campo
-                    p2Email: data.p2_email, // Novo campo
+                    p1Email: data.p1_email,
+                    p2Email: data.p2_email,
                     startDate: data.start_date,
                     avatarP1: data.avatar_p1,
                     avatarP2: data.avatar_p2,
                     heroCover: data.hero_cover
                 };
+
+                // Vinculação automática do e-mail ativo ao perfil correto (P1 ou P2)
+                if (this.currentUserEmail) {
+                    const loggedEmail = this.currentUserEmail.toLowerCase();
+                    let needsUpdate = false;
+
+                    if (!this.profile.p1Email) {
+                        this.profile.p1Email = loggedEmail;
+                        needsUpdate = true;
+                    } else if (this.profile.p1Email.toLowerCase() !== loggedEmail && !this.profile.p2Email) {
+                        this.profile.p2Email = loggedEmail;
+                        needsUpdate = true;
+                    }
+
+                    if (needsUpdate) {
+                        await supabase.from('profiles').upsert({
+                            id: '00000000-0000-0000-0000-000000000001',
+                            p1_name: this.profile.p1,
+                            p2_name: this.profile.p2,
+                            p1_email: this.profile.p1Email,
+                            p2_email: this.profile.p2Email,
+                            start_date: this.profile.startDate,
+                            avatar_p1: this.profile.avatarP1,
+                            avatar_p2: this.profile.avatarP2,
+                            hero_cover: this.profile.heroCover
+                        });
+                    }
+                }
             }
         } catch (e) {
             console.warn("Erro ao buscar perfil:", e);
@@ -75,8 +106,8 @@ export const store = {
             id: '00000000-0000-0000-0000-000000000001',
             p1_name: data.p1,
             p2_name: data.p2,
-            p1_email: data.p1Email, // Salva no Supabase
-            p2_email: data.p2Email, // Salva no Supabase
+            p1_email: data.p1Email || (this.currentUserEmail ? this.currentUserEmail : null),
+            p2_email: data.p2Email || null,
             start_date: data.startDate,
             avatar_p1: data.avatarP1,
             avatar_p2: data.avatarP2,
@@ -86,8 +117,8 @@ export const store = {
 
     getLoggedUser() {
         if (!this.profile || !this.currentUserEmail) return 'p1';
-        // Se o email logado bater com o p2, essa pessoa é p2. Caso contrário, é p1.
-        if (this.currentUserEmail.toLowerCase() === (this.profile.p2Email || '').toLowerCase()) {
+        const email = this.currentUserEmail.toLowerCase();
+        if (this.profile.p2Email && email === this.profile.p2Email.toLowerCase()) {
             return 'p2';
         }
         return 'p1';
@@ -96,18 +127,23 @@ export const store = {
     async fetchMoods() {
         try {
             const { data } = await supabase.from('moods').select('*').maybeSingle();
-            if (data) {
+            if (data && data.date) {
                 this.moods = { p1: data.p1, p2: data.p2, date: data.date };
+                localStorage.setItem('nook_moods', JSON.stringify(this.moods));
+            } else {
+                const local = localStorage.getItem('nook_moods');
+                if (local) this.moods = JSON.parse(local);
             }
         } catch (e) {
             console.warn("Erro ao buscar humor:", e);
+            const local = localStorage.getItem('nook_moods');
+            if (local) this.moods = JSON.parse(local);
         }
     },
 
-     async setMoods(data) {
-        // Mantém o estado local atualizado
+    async setMoods(data) {
         this.moods = data;
-        
+        localStorage.setItem('nook_moods', JSON.stringify(data));
         try {
             await supabase.from('moods').upsert({
                 id: '00000000-0000-0000-0000-000000000001',

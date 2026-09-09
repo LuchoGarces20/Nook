@@ -54,17 +54,23 @@ export const renderHome = () => {
         }
     }
 
-    // 4. Avatares e Moods (Dinâmico para P1 / P2 e Leitura Protegida)
+    // 4. Avatares e Moods (Preserva seleções no mesmo dia)
     const todayStr = getLocalDateString(new Date());
-    if (!store.moods || store.moods.date !== todayStr) {
+    
+    if (!store.moods) {
+        store.moods = { p1: null, p2: null, date: todayStr };
+    } else if (store.moods.date && store.moods.date !== todayStr) {
+        // Reseta o humor somente quando virar o dia
         if (typeof store.setMoods === 'function') {
             store.setMoods({ p1: null, p2: null, date: todayStr });
         } else {
             store.moods = { p1: null, p2: null, date: todayStr };
         }
+    } else {
+        store.moods.date = todayStr;
     }
 
-    // Identifica quem é o usuário atual logado e quem é o parceiro(a)
+    // Identifica quem é o usuário atual e quem é o parceiro
     const myPersonId = typeof store.getLoggedUser === 'function' ? store.getLoggedUser() : 'p1';
     const partnerPersonId = myPersonId === 'p1' ? 'p2' : 'p1';
 
@@ -98,11 +104,9 @@ export const renderHome = () => {
         }
     };
 
-    // Slot P1 (Esquerda) = Meu perfil | Slot P2 (Direita) = Perfil do Parceiro
     renderMoodCard('p1', myPersonId);
     renderMoodCard('p2', partnerPersonId);
 
-    // Ajusta o cursor do card do parceiro para indicar que é apenas leitura
     const cardP2 = document.getElementById('btn-mood-p2');
     if (cardP2) {
         cardP2.style.cursor = 'default';
@@ -278,13 +282,11 @@ export const initHome = () => {
     // 4. Mood Tracker Protegido
     const optionsContainer = document.getElementById('mood-options-container');
     
-    // Meu card (esquerda) -> Permite alterar MEU humor
     document.getElementById('btn-mood-p1')?.addEventListener('click', () => { 
         targetPerson = typeof store.getLoggedUser === 'function' ? store.getLoggedUser() : 'p1'; 
         openModal('mood-bottom-sheet'); 
     });
 
-    // Card do parceiro (direita) -> Bloqueado para edição
     document.getElementById('btn-mood-p2')?.addEventListener('click', () => { 
         triggerHaptic(10);
         const myPersonId = typeof store.getLoggedUser === 'function' ? store.getLoggedUser() : 'p1';
@@ -299,8 +301,12 @@ export const initHome = () => {
             btn.className = 'mood-option';
             btn.innerHTML = `<span class="emoji" style="font-size: 1.5rem;">${mood.icon}</span><span class="text" style="font-size: 1rem; font-weight: 600;">${mood.label}</span>`;
             btn.addEventListener('click', () => {
-                const currentMoods = store.moods ? { ...store.moods } : { p1: null, p2: null, date: getLocalDateString(new Date()) };
+                const todayStr = getLocalDateString(new Date());
+                const currentMoods = store.moods ? { ...store.moods } : { p1: null, p2: null, date: todayStr };
+                
                 currentMoods[targetPerson] = mood.id;
+                currentMoods.date = todayStr; // Garante explicitamente a data de hoje
+                
                 if (typeof store.setMoods === 'function') {
                     store.setMoods(currentMoods);
                 } else {
@@ -369,6 +375,5 @@ export const initHome = () => {
         closeAllModals(true);
     });
 
-    // Renderiza a Home
     renderHome();
 };
