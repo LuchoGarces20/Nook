@@ -30,7 +30,8 @@ export const store = {
     },
 
     async fetchProfile() {
-        const { data } = await supabase.from('profiles').select('*').single();
+    try {
+        const { data } = await supabase.from('profiles').select('*').maybeSingle();
         if (data) {
             this.profile = {
                 p1: data.p1_name,
@@ -41,7 +42,10 @@ export const store = {
                 heroCover: data.hero_cover
             };
         }
-    },
+    } catch (e) {
+        console.warn("Erro ao buscar perfil:", e);
+    }
+},
 
     async setProfile(data) {
         this.profile = data;
@@ -116,7 +120,8 @@ export const store = {
     },
 
     async fetchFinances() {
-        const { data } = await supabase.from('finances').select('*').single();
+    try {
+        const { data } = await supabase.from('finances').select('*').maybeSingle();
         if (data) {
             this.finances = {
                 model: data.model,
@@ -126,7 +131,10 @@ export const store = {
                 configured: data.configured
             };
         }
-    },
+    } catch (e) {
+        console.warn("Erro ao buscar finanças:", e);
+    }
+},
 
     async setFinances(data) {
         this.finances = data;
