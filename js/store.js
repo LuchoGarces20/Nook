@@ -119,6 +119,15 @@ export const store = {
         await supabase.from('memories').upsert(data);
     },
 
+    async clearProfile() {
+        this.profile = null;
+        try {
+            await supabase.from('profiles').delete().eq('id', '00000000-0000-0000-0000-000000000001');
+        } catch(e) {
+            console.warn("Erro ao limpar perfil:", e);
+        }
+    },
+
     async fetchFinances() {
     try {
         const { data } = await supabase.from('finances').select('*').maybeSingle();
