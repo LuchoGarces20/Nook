@@ -15,7 +15,6 @@ export const store = {
     moods: { p1: null, p2: null, date: '' },
     memories: [],
 
-    // Inicializa e carrega tudo do Supabase
     async init() {
         await Promise.all([
             this.fetchProfile(),
@@ -24,7 +23,8 @@ export const store = {
             this.fetchLists(),
             this.fetchAgenda(),
             this.fetchGoals(),
-            this.fetchMemories()
+            this.fetchMemories(),
+            this.fetchMoods()
         ]);
         this.subscribeRealtime();
     },
@@ -35,10 +35,7 @@ export const store = {
     },
 
     async login(email, password) {
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password
-        });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         return data;
     },
@@ -49,22 +46,22 @@ export const store = {
     },
 
     async fetchProfile() {
-    try {
-        const { data } = await supabase.from('profiles').select('*').maybeSingle();
-        if (data) {
-            this.profile = {
-                p1: data.p1_name,
-                p2: data.p2_name,
-                startDate: data.start_date,
-                avatarP1: data.avatar_p1,
-                avatarP2: data.avatar_p2,
-                heroCover: data.hero_cover
-            };
+        try {
+            const { data } = await supabase.from('profiles').select('*').maybeSingle();
+            if (data) {
+                this.profile = {
+                    p1: data.p1_name,
+                    p2: data.p2_name,
+                    startDate: data.start_date,
+                    avatarP1: data.avatar_p1,
+                    avatarP2: data.avatar_p2,
+                    heroCover: data.hero_cover
+                };
+            }
+        } catch (e) {
+            console.warn("Erro ao buscar perfil:", e);
         }
-    } catch (e) {
-        console.warn("Erro ao buscar perfil:", e);
-    }
-},
+    },
 
     async setProfile(data) {
         this.profile = data;
@@ -79,6 +76,31 @@ export const store = {
         });
     },
 
+    async fetchMoods() {
+        try {
+            const { data } = await supabase.from('moods').select('*').maybeSingle();
+            if (data) {
+                this.moods = { p1: data.p1, p2: data.p2, date: data.date };
+            }
+        } catch (e) {
+            console.warn("Erro ao buscar humor:", e);
+        }
+    },
+
+    async setMoods(data) {
+        this.moods = data;
+        try {
+            await supabase.from('moods').upsert({
+                id: '00000000-0000-0000-0000-000000000001',
+                p1: data.p1,
+                p2: data.p2,
+                date: data.date
+            });
+        } catch (e) {
+            console.warn("Erro ao salvar humor:", e);
+        }
+    },
+
     async fetchExpenses() {
         const { data } = await supabase.from('expenses').select('*');
         if (data) this.expenses = data;
@@ -86,7 +108,6 @@ export const store = {
 
     async setExpenses(data) {
         this.expenses = data;
-        // Para novas contas ou atualizações
         await supabase.from('expenses').upsert(data.map(e => ({
             id: typeof e.id === 'number' ? undefined : e.id,
             title: e.title,
@@ -148,21 +169,21 @@ export const store = {
     },
 
     async fetchFinances() {
-    try {
-        const { data } = await supabase.from('finances').select('*').maybeSingle();
-        if (data) {
-            this.finances = {
-                model: data.model,
-                incomeIS: data.income_is,
-                incomeVO: data.income_vo,
-                settleMode: data.settle_mode,
-                configured: data.configured
-            };
+        try {
+            const { data } = await supabase.from('finances').select('*').maybeSingle();
+            if (data) {
+                this.finances = {
+                    model: data.model,
+                    incomeIS: data.income_is,
+                    incomeVO: data.income_vo,
+                    settleMode: data.settle_mode,
+                    configured: data.configured
+                };
+            }
+        } catch (e) {
+            console.warn("Erro ao buscar financas:", e);
         }
-    } catch (e) {
-        console.warn("Erro ao buscar finanças:", e);
-    }
-},
+    },
 
     async setFinances(data) {
         this.finances = data;
@@ -176,7 +197,6 @@ export const store = {
         });
     },
 
-    // Ouve alterações feitas pela sua namorada e atualiza a tela na hora
     subscribeRealtime() {
         supabase.channel('public-db-changes')
             .on('postgres_changes', { event: '*', schema: 'public' }, () => {
