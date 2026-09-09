@@ -68,4 +68,10 @@ export const initSettings = () => {
             closeModal();
         });
     });
+
+    document.getElementById('btn-logout-app')?.addEventListener('click', () => {
+    if (confirm('Deseja realmente sair do Nook?')) {
+        store.logout();
+    }
+});
 };

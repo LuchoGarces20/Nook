@@ -29,6 +29,25 @@ export const store = {
         this.subscribeRealtime();
     },
 
+    async checkSession() {
+        const { data: { session } } = await supabase.auth.getSession();
+        return session;
+    },
+
+    async login(email, password) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password
+        });
+        if (error) throw error;
+        return data;
+    },
+
+    async logout() {
+        await supabase.auth.signOut();
+        window.location.reload();
+    },
+
     async fetchProfile() {
     try {
         const { data } = await supabase.from('profiles').select('*').maybeSingle();

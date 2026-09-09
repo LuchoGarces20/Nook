@@ -38,6 +38,31 @@
 </head>
 <body>
     <main class="app-container">
+
+                <!-- TELA DE LOGIN -->
+        <div id="view-login" class="view">
+            <section class="hero-dashboard" style="height: 180px; margin-bottom: 24px;">
+                <div class="hero-overlay"></div>
+                <div class="hero-content" style="bottom: 16px;">
+                    <h1 style="font-size: 1.6rem;">Nook</h1>
+                    <span style="color: rgba(255,255,255,0.9); font-size: 0.88rem;">Entre para acessar o espaço do casal.</span>
+                </div>
+            </section>
+
+            <form id="form-login" class="dash-card" style="flex-direction: column; align-items: stretch; gap: 16px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="login-email">E-mail</label>
+                    <input type="email" id="login-email" class="form-control" placeholder="seu@email.com" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="login-password">Senha</label>
+                    <input type="password" id="login-password" class="form-control" placeholder="••••••••" required>
+                </div>
+                <span id="login-error" style="color: #E63946; font-size: 0.8rem; display: none;">E-mail ou senha incorretos.</span>
+                <button type="submit" class="btn-primary">Entrar no Nook</button>
+            </form>
+        </div>
+
         <!-- ONBOARDING -->
         <div id="view-onboarding" class="view">
             <section class="hero-dashboard" style="height: 200px; margin-bottom: 20px;">
@@ -362,6 +387,10 @@
                             <span class="task-text">Aparência</span>
                             <span id="current-theme-label" style="font-size: 0.8rem; color: var(--primary); font-weight: 600;">Sistema</span>
                             <i class="ph ph-caret-right text-muted"></i>
+                        </li>
+                        <li class="task-item setting-item" id="btn-logout-app" style="cursor: pointer; color: #E63946;">
+                            <i class="ph ph-sign-out" style="font-size: 1.2rem; color: #E63946;"></i>
+                            <span class="task-text" style="color: #E63946; font-weight: 600;">Sair da Conta</span>
                         </li>
                     </ul>
                 </div>
