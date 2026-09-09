@@ -1,59 +1,151 @@
 // js/store.js
-const PREFIX = 'nook_';
+const SUPABASE_URL = 'https://acgzdijucuwojlngjimu.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_7XKTElFFXT8zoNVk-YJ_3g_uaUu8tNM';
 
-const load = (key, defaultData) => {
-    try {
-        const data = window.localStorage.getItem(PREFIX + key);
-        return data ? JSON.parse(data) : defaultData;
-    } catch (e) {
-        return defaultData;
-    }
-};
-
-const save = (key, data) => {
-    try {
-        window.localStorage.setItem(PREFIX + key, JSON.stringify(data));
-    } catch (e) {
-        console.warn("Sem acesso ao LocalStorage", e);
-    }
-};
+export const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 export const store = {
-    profile: load('profile', null),
-    theme: load('theme', 'system'),
-    finances: load('finances', { model: '50/50', incomeIS: '', incomeVO: '', focus: 'acerto', configured: false }),
-    expenses: load('expenses', []),
-    lists: load('lists', [
-        { id: 'atividades', name: 'Atividades', type: 'standard', items: [] },
-        { id: 'mercado', name: 'Mercado', type: 'standard', items: [] },
-        { id: 'filmes', name: '🎬 O que Assistir?', type: 'decision', items: [
-            { id: 1, text: 'O Poderoso Chefão', completed: false, owner: 'Casal' },
-            { id: 2, text: 'Interestelar', completed: false, owner: 'IS' },
-            { id: 3, text: 'Severance (Série)', completed: false, owner: 'VO' }
-        ] },
-        { id: 'restaurantes', name: '🍕 O que Comer?', type: 'decision', items: [
-            { id: 4, text: 'Japonês / Sushi', completed: false, owner: 'Casal' },
-            { id: 5, text: 'Hambúrguer Artesanal', completed: false, owner: 'IS' },
-            { id: 6, text: 'Pizzaria do Bairro', completed: false, owner: 'VO' }
-        ] }
-    ]),
-    agenda: load('agenda', []),
-    goals: load('goals', []),
-    moods: load('moods', { p1: null, p2: null, date: '' }),
-    memories: load('memories', []), // NOVO BANCO DE MEMÓRIAS
+    profile: null,
+    theme: 'system',
+    finances: { model: '50/50', incomeIS: '', incomeVO: '', focus: 'acerto', configured: false },
+    expenses: [],
+    lists: [],
+    agenda: [],
+    goals: [],
+    moods: { p1: null, p2: null, date: '' },
+    memories: [],
 
-    setProfile(data) { this.profile = data; save('profile', data); },
-    setTheme(data) { this.theme = data; save('theme', data); },
-    setFinances(data) { this.finances = data; save('finances', data); },
-    setExpenses(data) { this.expenses = data; save('expenses', data); },
-    setLists(data) { this.lists = data; save('lists', data); },
-    setAgenda(data) { this.agenda = data; save('agenda', data); },
-    setGoals(data) { this.goals = data; save('goals', data); },
-    setMoods(data) { this.moods = data; save('moods', data); },
-    setMemories(data) { this.memories = data; save('memories', data); },
+    // Inicializa e carrega tudo do Supabase
+    async init() {
+        await Promise.all([
+            this.fetchProfile(),
+            this.fetchFinances(),
+            this.fetchExpenses(),
+            this.fetchLists(),
+            this.fetchAgenda(),
+            this.fetchGoals(),
+            this.fetchMemories()
+        ]);
+        this.subscribeRealtime();
+    },
 
-    clearProfile() {
-        this.profile = null;
-        try { window.localStorage.removeItem(PREFIX + 'profile'); } catch(e){}
+    async fetchProfile() {
+        const { data } = await supabase.from('profiles').select('*').single();
+        if (data) {
+            this.profile = {
+                p1: data.p1_name,
+                p2: data.p2_name,
+                startDate: data.start_date,
+                avatarP1: data.avatar_p1,
+                avatarP2: data.avatar_p2,
+                heroCover: data.hero_cover
+            };
+        }
+    },
+
+    async setProfile(data) {
+        this.profile = data;
+        await supabase.from('profiles').upsert({
+            id: '00000000-0000-0000-0000-000000000001',
+            p1_name: data.p1,
+            p2_name: data.p2,
+            start_date: data.startDate,
+            avatar_p1: data.avatarP1,
+            avatar_p2: data.avatarP2,
+            hero_cover: data.heroCover
+        });
+    },
+
+    async fetchExpenses() {
+        const { data } = await supabase.from('expenses').select('*');
+        if (data) this.expenses = data;
+    },
+
+    async setExpenses(data) {
+        this.expenses = data;
+        // Para novas contas ou atualizações
+        await supabase.from('expenses').upsert(data.map(e => ({
+            id: typeof e.id === 'number' ? undefined : e.id,
+            title: e.title,
+            amount: e.amount,
+            category: e.category,
+            date: e.date,
+            owner: e.owner,
+            completed: e.completed
+        })));
+    },
+
+    async fetchLists() {
+        const { data } = await supabase.from('lists').select('*');
+        if (data && data.length > 0) this.lists = data;
+    },
+
+    async setLists(data) {
+        this.lists = data;
+        await supabase.from('lists').upsert(data);
+    },
+
+    async fetchAgenda() {
+        const { data } = await supabase.from('agenda').select('*');
+        if (data) this.agenda = data;
+    },
+
+    async setAgenda(data) {
+        this.agenda = data;
+        await supabase.from('agenda').upsert(data);
+    },
+
+    async fetchGoals() {
+        const { data } = await supabase.from('goals').select('*');
+        if (data) this.goals = data;
+    },
+
+    async setGoals(data) {
+        this.goals = data;
+        await supabase.from('goals').upsert(data);
+    },
+
+    async fetchMemories() {
+        const { data } = await supabase.from('memories').select('*');
+        if (data) this.memories = data;
+    },
+
+    async setMemories(data) {
+        this.memories = data;
+        await supabase.from('memories').upsert(data);
+    },
+
+    async fetchFinances() {
+        const { data } = await supabase.from('finances').select('*').single();
+        if (data) {
+            this.finances = {
+                model: data.model,
+                incomeIS: data.income_is,
+                incomeVO: data.income_vo,
+                settleMode: data.settle_mode,
+                configured: data.configured
+            };
+        }
+    },
+
+    async setFinances(data) {
+        this.finances = data;
+        await supabase.from('finances').upsert({
+            id: '00000000-0000-0000-0000-000000000001',
+            model: data.model,
+            income_is: data.incomeIS,
+            income_vo: data.incomeVO,
+            settle_mode: data.settleMode,
+            configured: data.configured
+        });
+    },
+
+    // Ouve alterações feitas pela sua namorada e atualiza a tela na hora
+    subscribeRealtime() {
+        supabase.channel('public-db-changes')
+            .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+                window.location.reload();
+            })
+            .subscribe();
     }
 };
