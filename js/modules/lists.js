@@ -17,9 +17,20 @@ export const renderLists = () => {
     const taskContainer = document.getElementById('task-list-container');
     if (!tabsContainer || !taskContainer) return;
 
+    // Se a lista ativa não existir ou o banco estiver vazio, pega a primeira ou define um padrão seguro
+    if (!store.lists || store.lists.length === 0) {
+        if (document.getElementById('active-list-header-title')) {
+            document.getElementById('active-list-header-title').textContent = 'Sem Listas';
+        }
+        tabsContainer.innerHTML = '';
+        taskContainer.innerHTML = `<li style="text-align:center; padding: 24px 0; color: var(--text-muted); font-size: 0.88rem;">Nenhuma lista encontrada. Clique no + para criar a primeira!</li>`;
+        return;
+    }
+
     const currentList = store.lists.find(l => l.id === activeListId) || store.lists[0];
+    
     if (document.getElementById('active-list-header-title')) {
-        document.getElementById('active-list-header-title').textContent = currentList.name;
+        document.getElementById('active-list-header-title').textContent = currentList ? currentList.name : 'Atividades';
     }
 
     // 1. RENDERIZAR ABAS COM INDICADOR VISUAL DE MÓDULO DE DECISÃO
